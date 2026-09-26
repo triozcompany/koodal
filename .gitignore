@@ -4,3 +4,6 @@ node_modules/
 .next/
 .DS_Store
 *.pem
+tsconfig.tsbuildinfo
+CivicPulse MVP Design Plan.zip
+CivicPulse MVP Design Plan/
