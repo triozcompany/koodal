@@ -1,0 +1,14 @@
+const FLOW=['report','ai','similar','validate','verify','case'];
+
+const SHOW='CP-2107';
+const PILL={reported:['var(--cp-surface-2)','var(--cp-ink-2)','New'],community:['var(--cp-marigold)','var(--cp-on-marigold)','Gathering support'],review:['var(--cp-peacock-soft)','var(--cp-ink)','With govt'],verified:['var(--cp-peacock)','#fff','Official case'],assigned:['var(--cp-peacock)','#fff','Official case'],progress:['var(--cp-pulse)','#fff','In progress'],resolved:['var(--cp-leaf-soft)','var(--cp-ink)','Fixed · confirm'],closed:['var(--cp-leaf)','#fff','Closed'],rejected:['var(--cp-surface-2)','var(--cp-ink-3)','Not accepted']};
+const PIN={reported:['var(--cp-surface)','var(--cp-ink)'],community:['var(--cp-marigold)','var(--cp-on-marigold)'],review:['var(--cp-marigold)','var(--cp-on-marigold)'],verified:['var(--cp-peacock)','#fff'],assigned:['var(--cp-peacock)','#fff'],progress:['var(--cp-pulse)','#fff'],resolved:['var(--cp-leaf)','#fff'],closed:['var(--cp-leaf)','#fff'],rejected:['var(--cp-surface-2)','var(--cp-ink-3)']};
+const SEGC=['var(--cp-ink-3)','var(--cp-marigold)','var(--cp-peacock)','var(--cp-pulse)','var(--cp-leaf)'];
+const TRACK=[['Reported','ph-flag'],['Community','ph-users-three'],['Verified','ph-seal-check'],['Action','ph-hard-hat'],['Fixed','ph-check']];
+const SEVL={critical:['Critical','var(--cp-pulse-soft)'],high:['High risk','var(--cp-pulse-soft)'],medium:['Medium','var(--cp-marigold-soft)'],low:['Low','var(--cp-surface-2)']};
+const STG={new:['reported'],gathering:['community'],govt:['review'],case:['verified','assigned'],progress:['progress'],fixed:['resolved','closed']};
+const AVB=['var(--cp-marigold-soft)','var(--cp-peacock-soft)','var(--cp-pulse-soft)','var(--cp-leaf-soft)','var(--cp-surface-2)'];
+const WAVE=[10,18,26,14,22,28,12,20,26,16,8,22,18,26,12,20,14,24,10,18];
+const SPARKS=Array.from({length:14},(_,i)=>{const a=i/14*Math.PI*2,r=112+(i%3)*14;return {x:`calc(50% + ${Math.cos(a)*r}px - 5px)`,y:`calc(50% + ${Math.sin(a)*r}px - 5px)`,s:(i%3?8:12)+'px',r:i%2?'50%':'3px',c:['#fff','oklch(0.82 0.15 75)','oklch(0.93 0.045 32)'][i%3],c2:['#fff','oklch(0.82 0.15 75)','oklch(0.22 0.03 270)'][i%3],d:(i%5)*0.05+0.15+'s'};});
+const REASONS=[['Half done','ph-circle-half'],['Poor quality','ph-warning'],['Not touched','ph-prohibit']];
+const RAIL=[['home','Nearby','Map, feed, support ▲'],['search','Search & filter','Keyword, area, status'],['report','Report sewage','Photo · Tamil voice · anon'],['ai','AI reads it','Classify · severity · dept'],['similar','Duplicate found','Join instead of re-posting'],['validate','Validate','Swipe: still there?'],['detail','Community threshold','CP-2107 crosses 80%'],['case','Official case','After govt verifies'],['timeline','Status timeline','Live from gov console'],['verify','Verify the fix','Before / after'],['cases','My cases','Mine + supporting'],['profile','Profile','Identity · anonymity']];

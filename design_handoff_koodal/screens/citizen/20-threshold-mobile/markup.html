@@ -1,0 +1,15 @@
+<!-- Koodal Citizen.dc.html · <sc-if value="{{ thM }}"> · chars 301890–304019 -->
+<sc-if value="{{ thM }}">
+      <div style="position:absolute;inset:0;z-index:40;background:var(--cp-peacock);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 28px 40px;gap:22px;animation:cp-in .4s cubic-bezier(.2,.9,.3,1.2) both">
+        <div style="position:relative;width:210px;height:210px">
+          <sc-for list="{{ sparks }}" as="k"><span style="position:absolute;left:{{ k.x }};top:{{ k.y }};width:{{ k.s }};height:{{ k.s }};border-radius:{{ k.r }};background:{{ k.c }};animation:cp-spark 1.1s {{ k.d }} ease-out both"></span></sc-for>
+          <div style="position:absolute;inset:0;border-radius:50%;background:conic-gradient(#fff {{ thDeg }},rgba(255,255,255,.2) 0)"></div>
+          <div style="position:absolute;inset:14px;border-radius:50%;background:var(--cp-peacock);display:grid;place-items:center">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="font:400 55px/0.9 'DM Serif Display',serif;letter-spacing:-.04em">{{ thNum }}%</span><span style="font:500 12px/1 Outfit,sans-serif;opacity:.85">{{ d.sup }} neighbours</span></div>
+          </div>
+        </div>
+        <div style="font:400 30px/1 'DM Serif Display',serif;letter-spacing:-.025em;text-align:center">Community verified</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.14);font:600 13px/1.25 Outfit,sans-serif"><i class="ph-bold ph-paper-plane-tilt" style="font-size:20px"></i>Sent to {{ d.corp }} · {{ d.dept }}</div>
+        <button onClick="{{ closeThreshold }}" style="margin-top:10px;width:100%;height:58px;border-radius:999px;background:#fff;color:oklch(0.22 0.03 270);border:2px solid oklch(0.22 0.03 270);box-shadow:0 4px 0 oklch(0.22 0.03 270);font:600 16px/1 Outfit,sans-serif;letter-spacing:.01em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-active="transform:translateY(2px) scale(.985);box-shadow:0 0 0 transparent">Track verification<i class="ph-bold ph-arrow-right"></i></button>
+      </div>
+      </sc-if>

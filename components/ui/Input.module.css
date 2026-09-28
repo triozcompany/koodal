@@ -1,0 +1,3 @@
+.citizen:focus { border-color: var(--cp-ink); outline: none; }
+.gov:focus     { border-color: var(--cp-ink); outline: none; }
+.textarea:focus { border-color: var(--cp-ink); outline: none; }

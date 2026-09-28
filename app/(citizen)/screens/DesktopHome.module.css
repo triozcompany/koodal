@@ -1,0 +1,12 @@
+.rowInner { transition: background .12s; }
+.rowInner:hover { background: var(--cp-bg) !important; }
+.pin {
+  transform: scale(var(--pin-sc, 1));
+  transition: transform .25s cubic-bezier(.3,1.6,.5,1), background .15s, color .15s;
+}
+.pin:hover { transform: scale(1.08); }
+.mapBtn { display: grid; place-items: center; transition: transform .15s; }
+.mapBtn:active { transform: scale(.92); }
+.supportBtn:active { transform: translateY(2px) scale(.985); box-shadow: 0 0 0 transparent !important; transition: transform .12s; }
+.regionBtn:active { transform: translateY(2px) scale(.985); box-shadow: 0 0 0 transparent !important; transition: transform .12s; }
+.selSupportBtn:active { transform: scale(.94); transition: transform .1s; }

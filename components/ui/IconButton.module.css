@@ -1,0 +1,4 @@
+.btn:active:not(:disabled) {
+  transform: scale(.92);
+  transition: transform .12s;
+}

@@ -1,0 +1,5 @@
+.avatarBtn:active { transform: translateY(2px) scale(.985); box-shadow: 0 0 0 transparent !important; transition: transform .12s; }
+.supportBtn:active { transform: translateY(2px) scale(.985); box-shadow: 0 0 0 transparent !important; transition: transform .12s; }
+.opposeBtn:active { transform: translateY(2px) scale(.985); box-shadow: 0 0 0 transparent !important; transition: transform .12s; }
+.commentBtn:hover { background: var(--cp-surface-2); }
+.shareBtn:hover { background: var(--cp-surface-2); }

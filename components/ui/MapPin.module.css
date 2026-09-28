@@ -1,0 +1,11 @@
+.pin { transition: transform var(--k-dur-fast); }
+.pin:hover { transform: scale(1.08); }
+.pin.hot::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: .18;
+  animation: cp-ping 1.6s ease-out infinite;
+}

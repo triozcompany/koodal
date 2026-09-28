@@ -1,0 +1,64 @@
+<!-- Koodal Citizen.dc.html · <sc-if value="{{ isVerify }}"> · chars 230308–241762 -->
+<sc-if value="{{ isVerify }}">
+    <div style="position:absolute;inset:0;padding:16px 20px 0;display:flex;flex-direction:column;gap:14px;animation:cp-in .38s cubic-bezier(.2,.9,.25,1.1) both">
+      <div style="display:flex;align-items:center;gap:12px;height:44px">
+        <button onClick="{{ goTimeline }}" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,var(--cp-surface),var(--cp-surface-2));border:1px solid var(--cp-line);box-shadow:0 2px 0 var(--cp-edge),0 8px 14px -10px rgb(0 0 0 / .25);color:var(--cp-ink);display:grid;place-items:center;cursor:pointer;font-size:19px" style-active="transform:translateY(2px) scale(.985);box-shadow:0 0 0 transparent"><i class="ph-bold {{ flowBackIcon }}"></i></button>
+        <span style="font:600 12px/1 Outfit,sans-serif;color:var(--cp-ink-3)">{{ d.caseOrId }}</span>
+      </div>
+      <div style="font:400 28px/1 'DM Serif Display',serif;letter-spacing:-.03em">Is it fixed?</div>
+      <div style="font:600 13px/1.25 Outfit,sans-serif;color:var(--cp-ink-2);margin-top:-6px">{{ d.title }}</div>
+      <div onPointerDown="{{ splitDown }}" style="position:relative;height:270px;border-radius:22px;border:1px solid var(--cp-line);overflow:hidden;touch-action:none;cursor:ew-resize;user-select:none;flex:none">
+        <div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,var(--cp-leaf-soft) 0 10px,var(--cp-surface) 10px 20px);display:grid;place-items:center"><span style="font:500 11px/1 Outfit,sans-serif;color:var(--cp-ink-2);background:var(--cp-surface);padding:6px 9px;border-radius:6px;margin-left:120px">after · proof {{ vaSel }}</span></div>
+        <div style="position:absolute;top:0;bottom:0;left:0;width:{{ splitW }};overflow:hidden">
+          <div style="position:absolute;top:0;bottom:0;left:0;width:350px;background:repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px);display:grid;place-items:center"><span style="font:500 11px/1 Outfit,sans-serif;color:var(--cp-ink-2);background:var(--cp-surface);padding:6px 9px;border-radius:6px;margin-right:120px">before · photo {{ vbSel }}</span></div>
+        </div>
+        <span style="position:absolute;left:12px;top:12px;height:26px;padding:0 10px;border-radius:8px;background:var(--cp-ink);color:var(--cp-bg);font:700 11.5px/26px Outfit,sans-serif;white-space:nowrap">BEFORE</span>
+        <span style="position:absolute;right:12px;top:12px;height:26px;padding:0 10px;border-radius:8px;background:var(--cp-leaf);color:#fff;font:700 11.5px/26px Outfit,sans-serif;white-space:nowrap">AFTER</span>
+        <div style="position:absolute;top:0;bottom:0;left:{{ splitW }};width:3px;margin-left:-1.5px;background:var(--cp-edge)">
+          <div style="position:absolute;top:50%;left:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:14px;background:var(--cp-surface);border:1px solid var(--cp-line);box-shadow:0 1px 2px rgb(0 0 0 / .05);display:grid;place-items:center;color:var(--cp-ink);font-size:18px"><i class="ph-bold ph-arrows-horizontal"></i></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div style="display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:14px;border:1px solid var(--cp-line);background:var(--cp-surface);min-width:0"><span style="font:600 11px/1 Outfit,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--cp-ink-3)">BEFORE</span><span style="font:500 12px/1.3 Outfit,sans-serif;color:var(--cp-ink-2)">{{ vbLine }}</span><div style="display:flex;gap:5px;overflow-x:auto;scrollbar-width:none"><sc-for list="{{ vbThumbs }}" as="th"><button onClick="{{ th.pick }}" style="width:38px;height:38px;flex:none;border-radius:50%;border:2px solid {{ th.bd }};background:repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px);cursor:pointer;padding:0"></button></sc-for></div></div><div style="display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:14px;border:1px solid var(--cp-line);background:var(--cp-leaf-soft);min-width:0"><span style="font:600 11px/1 Outfit,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--cp-ink-3)">AFTER · PROOF</span><span style="font:500 12px/1.3 Outfit,sans-serif;color:var(--cp-ink-2)">{{ vaLine }}</span><div style="display:flex;gap:5px"><sc-for list="{{ vaThumbs }}" as="th"><span style="width:38px;height:38px;flex:none;border-radius:9px;border:2px solid {{ th.bd }};background:repeating-linear-gradient(135deg,var(--cp-leaf-soft) 0 6px,var(--cp-surface) 6px 12px);box-sizing:border-box"></span></sc-for></div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="display:flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:9px;background:var(--cp-leaf-soft);font:600 12.5px/1 Outfit,sans-serif;white-space:nowrap"><i class="ph-bold ph-crosshair"></i>Shot 6 m from report</span>
+        <span style="display:flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:9px;background:var(--cp-surface-2);font:600 12.5px/1 Outfit,sans-serif;white-space:nowrap"><i class="ph-bold ph-hard-hat"></i>{{ d.assignee }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:2px">
+        <div style="display:flex;gap:3px"><sc-for list="{{ confirmDots }}" as="cd"><span style="flex:1;height:10px;border-radius:3px;background:{{ cd.c }};transition:background .3s"></span></sc-for></div>
+        <div style="display:flex;justify-content:space-between;font:600 12px/1 Outfit,sans-serif;color:var(--cp-ink-3)"><span>{{ d.confirms }} of {{ d.needed }} neighbours</span><span>closes at {{ d.needed }}</span></div>
+      </div>
+      <sc-if value="{{ verifyOpen }}">
+      <div style="position:absolute;left:16px;right:16px;bottom:32px;display:flex;gap:10px">
+        <button onClick="{{ notFixed }}" style="flex:3;height:60px;border-radius:999px;background:linear-gradient(180deg,var(--cp-surface),var(--cp-surface-2));color:var(--cp-ink);border:1px solid var(--cp-line);box-shadow:0 2px 0 var(--cp-edge),0 8px 14px -10px rgb(0 0 0 / .25);font:600 15px/1 Outfit,sans-serif;letter-spacing:.01em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-active="transform:translateY(2px) scale(.985);box-shadow:0 0 0 transparent"><i class="ph-bold ph-thumbs-down"></i>Not yet</button>
+        <button data-glare="1" onClick="{{ fixed }}" style="flex:7;height:60px;border-radius:999px;background:var(--cp-leaf);color:#fff;border:1px solid var(--cp-line);box-shadow:0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14);font:600 16px/1 Outfit,sans-serif;letter-spacing:.01em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-active="transform:translateY(2px) scale(.985);box-shadow:0 0 0 transparent"><i class="ph-bold ph-check-fat"></i>Fixed</button>
+      </div>
+      </sc-if>
+      <sc-if value="{{ verifyClosed }}"><div style="position:absolute;left:16px;right:16px;bottom:32px;height:60px;border-radius:17px;background:var(--cp-surface-2);color:var(--cp-ink-2);display:flex;align-items:center;justify-content:center;gap:8px;font:400 14px/1.2 'DM Serif Display',serif;text-align:center;padding:0 16px">{{ verifyMsg }}</div></sc-if>
+      <sc-if value="{{ vFixed }}">
+        <div style="position:absolute;inset:0;z-index:40;background:var(--cp-leaf);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:0 28px;animation:cp-in .4s cubic-bezier(.2,.9,.3,1.2) both">
+          <div style="position:relative;width:170px;height:170px;display:grid;place-items:center">
+            <sc-for list="{{ sparks }}" as="k"><span style="position:absolute;left:{{ k.x }};top:{{ k.y }};width:{{ k.s }};height:{{ k.s }};border-radius:{{ k.r }};background:{{ k.c2 }};animation:cp-spark 1.1s {{ k.d }} ease-out both"></span></sc-for>
+            <div style="width:120px;height:120px;border-radius:36px;background:#fff;color:oklch(0.45 0.13 150);display:grid;place-items:center;font-size:62px;border:3px solid oklch(0.22 0.03 270);box-shadow:0 6px 0 oklch(0.22 0.03 270);animation:cp-pop .55s .1s cubic-bezier(.3,1.6,.5,1) both"><i class="ph-bold ph-check-fat"></i></div>
+          </div>
+          <div style="font:400 32px/1 'DM Serif Display',serif;letter-spacing:-.03em;text-align:center">{{ fixedTitle }}</div>
+          <div style="display:flex;gap:3px;width:100%"><sc-for list="{{ confirmDots }}" as="cd"><span style="flex:1;height:10px;border-radius:3px;background:{{ cd.w }}"></span></sc-for></div>
+          <div style="font:600 13px/1.3 Outfit,sans-serif;opacity:.92">{{ d.confirms }} of {{ d.needed }} confirmed</div>
+          <button onClick="{{ goCases }}" style="margin-top:12px;width:100%;height:58px;border-radius:999px;background:#fff;color:oklch(0.22 0.03 270);border:2px solid oklch(0.22 0.03 270);box-shadow:0 4px 0 oklch(0.22 0.03 270);font:600 16px/1 Outfit,sans-serif;letter-spacing:.01em;cursor:pointer" style-active="transform:translateY(2px) scale(.985);box-shadow:0 0 0 transparent">Done</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ vNot }}">
+        <div style="position:absolute;inset:0;z-index:40;background:var(--cp-scrim);backdrop-filter:blur(6px) saturate(120%);-webkit-backdrop-filter:blur(6px) saturate(120%);animation:cp-row .2s both">
+          <div style="position:absolute;left:0;right:0;bottom:0;background:var(--cp-surface);border-radius:26px 26px 0 0;padding:12px 20px 34px;display:flex;flex-direction:column;gap:16px;animation:cp-sheet .4s cubic-bezier(.2,.9,.3,1.1) both">
+            <div style="width:40px;height:5px;border-radius:3px;background:var(--cp-line);margin:0 auto"></div>
+            <div style="font:400 21px/1 'DM Serif Display',serif;letter-spacing:-.02em">What's still wrong?</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <sc-for list="{{ reasons }}" as="rs"><button onClick="{{ rs.pick }}" style="height:84px;border-radius:16px;border:1px solid var(--cp-line);background:{{ rs.bg }};color:{{ rs.fg }};box-shadow:{{ rs.sh }};transform:{{ rs.t }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font:600 12.5px/1.1 Outfit,sans-serif;cursor:pointer;transition:all .12s"><i class="ph-bold {{ rs.icon }}" style="font-size:24px"></i>{{ rs.label }}</button></sc-for>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button onClick="{{ cancelNot }}" style="width:60px;height:58px;border-radius:999px;background:linear-gradient(180deg,var(--cp-surface),var(--cp-surface-2));color:var(--cp-ink);border:1px solid var(--cp-line);box-shadow:0 2px 0 var(--cp-edge),0 8px 14px -10px rgb(0 0 0 / .25);font-size:22px;display:grid;place-items:center;cursor:pointer"><i class="ph-bold ph-x"></i></button>
+              <button data-glare="1" onClick="{{ sendReopen }}" style="flex:1;height:58px;border-radius:999px;background:var(--cp-ink);color:var(--cp-bg);border:1px solid var(--cp-line);box-shadow:0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14);font:600 16px/1 Outfit,sans-serif;letter-spacing:.01em;cursor:pointer;opacity:{{ reopenO }}" style-active="transform:translateY(2px) scale(.985);box-shadow:0 0 0 transparent">Tell the department</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+    </sc-if>

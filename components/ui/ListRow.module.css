@@ -1,0 +1,3 @@
+.row { transition: background .12s; }
+.row:hover  { background: var(--cp-bg); }
+.row:active { background: var(--cp-surface-2); }

@@ -1,0 +1,12 @@
+.btn {
+  transition: transform var(--k-dur-base) var(--k-ease-spring),
+              background var(--k-dur-base) var(--k-ease-spring);
+}
+.btn:active:not(:disabled) {
+  transform: scale(.94);
+  transition: transform .12s;
+}
+.on {
+  background: var(--cp-ink) !important;
+  color: var(--cp-bg) !important;
+}

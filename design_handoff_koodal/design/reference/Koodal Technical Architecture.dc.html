@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Tamil:wght@500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<style>html,body{margin:0;background:#fff;}a{color:#1f6fb2;}a:hover{color:#16807f;}</style>
+</helmet>
+<div data-screen-label="Technical Architecture" style="position:relative;width:1920px;height:1080px;background:#fff;font-family:'IBM Plex Sans','IBM Plex Sans Tamil',sans-serif;color:#0f1b2d;overflow:hidden;">
+
+  <div style="position:absolute;left:80px;top:52px;display:flex;flex-direction:column;gap:8px;">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;letter-spacing:.14em;color:#16807f;white-space:nowrap;">PWA · FIREBASE · GEMINI</div>
+    <div style="font-size:48px;font-weight:700;letter-spacing:-.02em;white-space:nowrap;">KOODAL — Technical Architecture</div>
+  </div>
+  <div style="position:absolute;right:80px;top:74px;display:flex;gap:26px;font-size:18px;color:#4a5a70;white-space:nowrap;">
+    <div style="display:flex;align-items:center;gap:10px;"><div style="width:14px;height:14px;border-radius:4px;background:#1f6fb2;"></div>Citizen</div>
+    <div style="display:flex;align-items:center;gap:10px;"><div style="width:14px;height:14px;border-radius:4px;background:#16807f;"></div>Government</div>
+    <div style="display:flex;align-items:center;gap:10px;"><div style="width:14px;height:14px;border-radius:4px;border:2px dashed #6b5bd6;box-sizing:border-box;"></div>AI assists</div>
+  </div>
+
+  <!-- Vercel container -->
+  <div style="position:absolute;left:80px;top:200px;width:780px;height:590px;box-sizing:border-box;border:2px dashed #b7c2d0;border-radius:20px;"></div>
+  <div style="position:absolute;left:108px;top:218px;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:16px;letter-spacing:.1em;color:#4a5a70;white-space:nowrap;"><i class="ph ph-triangle" style="font-size:18px;color:#0f1b2d;"></i>DEPLOYED ON VERCEL</div>
+
+  <!-- Citizen PWA -->
+  <div style="position:absolute;left:108px;top:266px;width:360px;height:300px;box-sizing:border-box;border:2px solid #1f6fb2;border-radius:16px;background:#f3f8fd;padding:24px;display:flex;flex-direction:column;justify-content:center;gap:18px;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="width:50px;height:50px;flex:none;border-radius:13px;background:#1f6fb2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:27px;"><i class="ph ph-device-mobile"></i></div>
+      <div style="display:flex;flex-direction:column;gap:2px;"><div style="font-size:26px;font-weight:600;white-space:nowrap;">Citizen PWA</div><div style="font-size:17px;color:#4a5a70;white-space:nowrap;">Report · support · confirm</div></div>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.1em;color:#1f6fb2;">PWA SUPPORT</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:-8px;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:17px;padding:10px 12px;border-radius:9px;background:#fff;border:1px solid #d6e3f1;white-space:nowrap;"><i class="ph ph-download-simple" style="font-size:20px;color:#1f6fb2;"></i>Installable</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:17px;padding:10px 12px;border-radius:9px;background:#fff;border:1px solid #d6e3f1;white-space:nowrap;"><i class="ph ph-camera" style="font-size:20px;color:#1f6fb2;"></i>Camera</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:17px;padding:10px 12px;border-radius:9px;background:#fff;border:1px solid #d6e3f1;white-space:nowrap;"><i class="ph ph-map-pin" style="font-size:20px;color:#1f6fb2;"></i>Location</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:17px;padding:10px 12px;border-radius:9px;background:#fff;border:1px solid #d6e3f1;white-space:nowrap;"><i class="ph ph-bell" style="font-size:20px;color:#1f6fb2;"></i>Notifications</div>
+    </div>
+  </div>
+
+  <!-- Government Web App -->
+  <div style="position:absolute;left:108px;top:596px;width:360px;height:166px;box-sizing:border-box;border:2px solid #16807f;border-radius:16px;background:#f1f9f8;padding:24px;display:flex;flex-direction:column;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="width:50px;height:50px;flex:none;border-radius:13px;background:#16807f;color:#fff;display:flex;align-items:center;justify-content:center;font-size:27px;"><i class="ph ph-buildings"></i></div>
+      <div style="display:flex;flex-direction:column;gap:2px;"><div style="font-size:23px;font-weight:600;white-space:nowrap;">Government Web App</div><div style="font-size:17px;color:#4a5a70;white-space:nowrap;">Review · assign · resolve</div></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:16px;padding:8px 10px;border-radius:9px;background:#fff;border:1px solid #d3e8e6;white-space:nowrap;"><i class="ph ph-monitor" style="font-size:20px;color:#16807f;"></i>Desktop web</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:16px;padding:8px 10px;border-radius:9px;background:#fff;border:1px solid #d3e8e6;white-space:nowrap;"><i class="ph ph-translate" style="font-size:20px;color:#16807f;"></i>தமிழ் · English</div>
+    </div>
+  </div>
+
+  <!-- Client ↔ Backend arrows -->
+  <div style="position:absolute;left:484px;top:415px;width:60px;height:2px;background:#1f6fb2;"></div>
+  <div style="position:absolute;left:476px;top:409px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-right:12px solid #1f6fb2;"></div>
+  <div style="position:absolute;left:544px;top:409px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-left:12px solid #1f6fb2;"></div>
+  <div style="position:absolute;left:484px;top:678px;width:60px;height:2px;background:#16807f;"></div>
+  <div style="position:absolute;left:476px;top:672px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-right:12px solid #16807f;"></div>
+  <div style="position:absolute;left:544px;top:672px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-left:12px solid #16807f;"></div>
+
+  <!-- Backend -->
+  <div style="position:absolute;left:564px;top:266px;width:268px;height:496px;box-sizing:border-box;border-radius:16px;background:#0f1b2d;color:#fff;padding:26px 22px;display:flex;flex-direction:column;gap:22px;">
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="width:50px;height:50px;border-radius:13px;background:rgb(255 255 255 / .1);color:#9fd6d3;display:flex;align-items:center;justify-content:center;font-size:27px;"><i class="ph ph-cpu"></i></div>
+      <div style="font-size:26px;font-weight:600;line-height:1.15;">KOODAL Backend / APIs</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;flex:1;justify-content:center;">
+      <div style="display:flex;align-items:center;gap:10px;font-size:17px;padding:12px;border-radius:9px;background:rgb(255 255 255 / .08);white-space:nowrap;"><i class="ph ph-clipboard-text" style="font-size:20px;color:#9fd6d3;"></i>Reports &amp; cases</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:17px;padding:12px;border-radius:9px;background:rgb(255 255 255 / .08);white-space:nowrap;"><i class="ph ph-sparkle" style="font-size:20px;color:#b9b0f2;"></i>AI requests</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:17px;padding:12px;border-radius:9px;background:rgb(255 255 255 / .08);white-space:nowrap;"><i class="ph ph-bell-ringing" style="font-size:20px;color:#9fd6d3;"></i>Status &amp; alerts</div>
+    </div>
+  </div>
+
+  <!-- Backend ↔ right arrows -->
+  <div style="position:absolute;left:848px;top:339px;width:76px;height:2px;background:#0f1b2d;"></div>
+  <div style="position:absolute;left:840px;top:333px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-right:12px solid #0f1b2d;"></div>
+  <div style="position:absolute;left:924px;top:333px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-left:12px solid #0f1b2d;"></div>
+  <div style="position:absolute;left:848px;top:649px;width:76px;height:2px;background:#6b5bd6;"></div>
+  <div style="position:absolute;left:840px;top:643px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-right:12px solid #6b5bd6;"></div>
+  <div style="position:absolute;left:924px;top:643px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-left:12px solid #6b5bd6;"></div>
+
+  <!-- Firebase -->
+  <div style="position:absolute;left:940px;top:200px;width:900px;height:270px;box-sizing:border-box;border:2px solid #0f1b2d;border-radius:18px;padding:22px 26px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:center;gap:12px;"><i class="ph ph-fire" style="font-size:26px;color:#e08a1e;"></i><div style="font-size:24px;font-weight:600;white-space:nowrap;">Firebase</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;flex:1;">
+      <div style="background:#f4f6f9;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;"><i class="ph ph-lock-key" style="font-size:26px;color:#1f6fb2;"></i><div style="font-size:19px;font-weight:600;white-space:nowrap;">Auth / OTP</div><div style="font-size:16px;color:#4a5a70;">Phone sign-in</div></div>
+      <div style="background:#f4f6f9;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;"><i class="ph ph-database" style="font-size:26px;color:#1f6fb2;"></i><div style="font-size:19px;font-weight:600;white-space:nowrap;">Firestore</div><div style="font-size:16px;color:#4a5a70;">Reports · cases · timeline</div></div>
+      <div style="background:#f4f6f9;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;"><i class="ph ph-images" style="font-size:26px;color:#1f6fb2;"></i><div style="font-size:19px;font-weight:600;white-space:nowrap;">Storage</div><div style="font-size:16px;color:#4a5a70;">Photos · fix proof</div></div>
+      <div style="background:#f4f6f9;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;"><i class="ph ph-bell-ringing" style="font-size:26px;color:#1f6fb2;"></i><div style="font-size:19px;font-weight:600;white-space:nowrap;">Cloud Messaging</div><div style="font-size:16px;color:#4a5a70;">Push notifications</div></div>
+    </div>
+  </div>
+
+  <!-- External AI & Platform -->
+  <div style="position:absolute;left:940px;top:500px;width:900px;height:290px;box-sizing:border-box;border:2px solid #0f1b2d;border-radius:18px;padding:22px 26px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:center;gap:12px;"><i class="ph ph-plugs-connected" style="font-size:26px;color:#0f1b2d;"></i><div style="font-size:24px;font-weight:600;white-space:nowrap;">External AI &amp; Platform Services</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+      <div style="background:#f6f4fe;border:1.5px dashed #6b5bd6;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;"><i class="ph ph-sparkle" style="font-size:26px;color:#6b5bd6;"></i><div style="font-size:19px;font-weight:600;white-space:nowrap;">Gemini API</div><div style="font-size:16px;color:#4b3fb0;">Analysis · insights</div></div>
+      <div style="background:#f6f4fe;border:1.5px dashed #6b5bd6;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;"><i class="ph ph-microphone" style="font-size:26px;color:#6b5bd6;"></i><div style="font-size:19px;font-weight:600;white-space:nowrap;">Voice-to-Text</div><div style="font-size:16px;color:#4b3fb0;">Speech recognition</div></div>
+      <div style="background:#f6f4fe;border:1.5px dashed #6b5bd6;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;"><i class="ph ph-translate" style="font-size:26px;color:#6b5bd6;"></i><div style="font-size:19px;font-weight:600;white-space:nowrap;">Multilingual</div><div style="font-size:16px;color:#4b3fb0;">தமிழ் + English</div></div>
+      <div style="background:#f4f6f9;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;"><i class="ph ph-map-trifold" style="font-size:26px;color:#16807f;"></i><div style="font-size:19px;font-weight:600;white-space:nowrap;">Maps</div><div style="font-size:16px;color:#4a5a70;">Geolocation · pins</div></div>
+    </div>
+    <div style="display:flex;gap:12px;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:16px;padding:7px 12px;border-radius:8px;background:#e8f1fa;color:#1f5d96;white-space:nowrap;"><i class="ph ph-device-mobile" style="font-size:18px;"></i>Assists citizen reporting</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:16px;padding:7px 12px;border-radius:8px;background:#e4f3f2;color:#136b6a;white-space:nowrap;"><i class="ph ph-chart-line-up" style="font-size:18px;"></i>Gemini supports government analysis &amp; insights</div>
+    </div>
+  </div>
+
+  <!-- Data flow -->
+  <div style="position:absolute;left:80px;top:852px;width:1760px;display:flex;flex-direction:column;gap:16px;border-top:1.5px solid #e3e8ef;padding-top:26px;">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:16px;letter-spacing:.14em;color:#7c8ba1;">MAIN DATA FLOW</div>
+    <div style="display:flex;align-items:center;gap:22px;white-space:nowrap;">
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:12px;border:1.5px solid #1f6fb2;background:#f3f8fd;font-size:20px;font-weight:500;"><i class="ph ph-users" style="font-size:22px;color:#1f6fb2;"></i>Citizen / Government</div>
+      <i class="ph ph-arrow-right" style="font-size:22px;color:#7c8ba1;"></i>
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:12px;background:#0f1b2d;color:#fff;font-size:20px;font-weight:500;"><i class="ph ph-cpu" style="font-size:22px;color:#9fd6d3;"></i>KOODAL Backend</div>
+      <i class="ph ph-arrow-right" style="font-size:22px;color:#7c8ba1;"></i>
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:12px;border:1.5px dashed #6b5bd6;background:#f6f4fe;font-size:20px;font-weight:500;"><i class="ph ph-stack" style="font-size:22px;color:#6b5bd6;"></i>Firebase · Gemini · Maps · Voice</div>
+      <i class="ph ph-arrow-right" style="font-size:22px;color:#7c8ba1;"></i>
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-radius:12px;border:1.5px solid #16807f;background:#f1f9f8;font-size:20px;font-weight:500;"><i class="ph ph-bell-ringing" style="font-size:22px;color:#16807f;"></i>Response / Notifications</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1920,&quot;height&quot;:1080}}"></script>
+</body>
+</html>

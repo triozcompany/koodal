@@ -1,0 +1,5 @@
+.btn:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: var(--k-press);
+  box-shadow: var(--k-sh-pressed) !important;
+  transition: transform .12s, box-shadow .12s;
+}
