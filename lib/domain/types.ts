@@ -8,7 +8,11 @@ export interface MapCamera { center: [number, number]; zoom: number; pitch: numb
 export interface Voice { lang: string; text: string; en: string; }
 export interface MergedReport { by: string; h: number; text: string; sim: number; me?: boolean; id?: string; }
 export interface Evidence { id?: string; by: string; uid: string; ts: number; kind?: 'initial' | 'followup'; url?: string; }
-export interface IssueEvent { ts: number; title: string; sub: string; icon: string; kind: string; photo: string; }
+/** A staff member who acted on a case (Console). */
+export interface Actor { id: string; name: string }
+/** A photo a staff member attached as proof (reject reason / after-fix). Cloudinary, WebP. */
+export interface ProofPhoto { url: string; publicId?: string; by: string; byId: string; ts: number }
+export interface IssueEvent { ts: number; title: string; sub: string; icon: string; kind: string; photo: string; by?: string; byId?: string; }
 export interface Comment { id?: string; by: string; uid?: string; text: string; ts: number; me?: boolean; edited?: boolean; }
 
 export interface Issue {
@@ -57,12 +61,21 @@ export interface Issue {
   text: string;
   tags: string[];
   reopened?: number;
+  /** When community support crossed the threshold and the official case opened (or staff took it up early). */
+  thresholdAt?: number;
+  /** Marks seeded design-mock issues, so the Console can tag and hide them. */
+  demo?: boolean;
   disputes?: number;
   rejectNote?: string;
-  rejectProof?: string[];
+  // Older records hold plain text labels; new ones hold uploaded photos.
+  rejectProof?: (string | ProofPhoto)[];
   rejectRef?: string;
   rejectedAt?: number;
-  fixProof?: string[];
+  fixProof?: (string | ProofPhoto)[];
+  decidedBy?: Actor;
+  rejectedBy?: Actor;
+  assignedBy?: Actor;
+  fixedBy?: Actor;
   fixNote?: string;
 }
 

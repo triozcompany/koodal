@@ -4,11 +4,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMob } from '@/lib/console/useMob';
 import { CATS } from '@/lib/domain/constants';
 import type { Category, Issue } from '@/lib/domain/types';
-import { byScore, caseMatches, caseRow, deptName, govStage, isCase, isOverdue, PIN_COLOR, searchTokens, STATUS_OPTS, type CaseRow } from '@/lib/console/derive';
+import { byScore, caseMatches, caseRow, deptName, govStage, isCase, isOverdue, isSignal, PIN_COLOR, searchTokens, STATUS_OPTS, type CaseRow } from '@/lib/console/derive';
 import type { MapCamera } from '@/lib/console/mapState';
 import { useConsole } from '../../_components/ConsoleProvider';
 import { ConsoleMap, issueLngLat, type AreaBubble } from '../../_components/ConsoleMap';
 import { Combobox } from '../../_components/Combobox';
+import { DemoTag, RealOnlyEmpty } from '../../_components/DemoTag';
 import { Drawer, FieldLabel, LinkButton, PrimaryButton } from '../../_components/Drawer';
 
 const mapStatus = (i: Issue, k: string) => (k === 'overdue' ? isOverdue(i) : k === 'fixed' ? ['fixed', 'closed'].includes(govStage(i)) : govStage(i) === k);
@@ -40,7 +41,7 @@ function ListRow({ r, selected, onPick, onHover, hot }: { r: CaseRow; selected: 
       style={{ display: 'grid', gridTemplateColumns: '46px minmax(0,1fr) auto', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--cp-line)', cursor: 'pointer', alignItems: 'start', background: selected ? 'var(--cp-bg)' : undefined, boxShadow: `inset 3px 0 0 ${r.bar}` }}>
       <div style={{ width: 46, height: 46, borderRadius: 13, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center' }}><i className={`ph-bold ${r.icon}`} style={{ fontSize: 22, color: 'var(--cp-bg)' }} /></div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-        <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.ref} · {r.meta}</span>
+        <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.ref} · {r.meta}{r.demo && <DemoTag />}</span>
         <span style={{ font: '600 14px/1.25 Outfit,sans-serif', textWrap: 'pretty' }}>{r.title}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: '0 8px', borderRadius: 999, background: r.stageBg, color: r.stageFg, font: '600 11px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}><i className={`ph-bold ${r.stageIcon}`} />{r.stageShort}</span>
@@ -59,7 +60,7 @@ function MapInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const mob = useMob();
-  const { issues, issuesReady, mapState } = useConsole();
+  const { issues, issuesReady, mapState, showDemo } = useConsole();
   // Come back to exactly what the user left (see lib/console/mapState.ts). An explicit ?sel= from
   // a case's "View on map" wins over the saved selection and camera.
   const saved = mapState.current;
@@ -102,7 +103,7 @@ function MapInner() {
   }, [shown]);
   const emerging = useMemo<AreaBubble[]>(() => {
     const by: Record<string, Pt[]> = {};
-    issues.filter((i) => ['reported', 'community'].includes(i.stage) && (!mArea.length || mArea.includes(i.area))).forEach((i) => (by[i.area] ??= []).push({ lngLat: issueLngLat(i) }));
+    issues.filter((i) => isSignal(i) && (!mArea.length || mArea.includes(i.area))).forEach((i) => (by[i.area] ??= []).push({ lngLat: issueLngLat(i) }));
     return Object.entries(by).map(([area, l]) => ({ area, lngLat: centroid(l), n: l.length }));
   }, [issues, mArea]);
 
@@ -148,7 +149,8 @@ function MapInner() {
   const listBody = (
     <>
       {rows.map((r) => <ListRow key={r.id} r={r} selected={sel === r.id} hot={r.bar !== 'transparent'} onPick={() => pick(r.id)} onHover={(on) => setHover(on ? r.id : null)} />)}
-      {issuesReady && rows.length === 0 && <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--cp-ink-3)', font: '600 13px/1.4 Outfit,sans-serif' }}>{searching ? 'No cases match your search.' : 'No cases match these filters.'}</div>}
+      {issuesReady && cases.length === 0 && !showDemo && <div style={{ padding: 16 }}><RealOnlyEmpty compact /></div>}
+      {issuesReady && rows.length === 0 && (cases.length > 0 || showDemo) && <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--cp-ink-3)', font: '600 13px/1.4 Outfit,sans-serif' }}>{searching ? 'No cases match your search.' : 'No cases match these filters.'}</div>}
     </>
   );
   const regionRows: [string, string, number][] = [['', 'All of Chennai', cases.length], ...sorted(areaCount).filter(([a]) => a.toLowerCase().includes(regQ.trim().toLowerCase())).map(([a, n]): [string, string, number] => [a, a, n])];

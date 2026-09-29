@@ -4,9 +4,12 @@ import { auth } from '@/lib/firebase/client';
 import type { Issue } from '@/lib/domain/types';
 import { D } from '@/lib/domain/constants';
 import { approveCase, editAssignment, markFixed, postUpdate, rejectCase } from '@/server/actions/console-cases';
-import { deptName, fdate, GOV_DEPTS, REJECT_REASONS } from '@/lib/console/derive';
+import { deptName, fdate, govDepts, rejectReasons } from '@/lib/console/derive';
+import { getConfig } from '@/lib/console/config';
 import { Drawer, FieldLabel, LinkButton, PrimaryButton } from './Drawer';
 import { Combobox } from './Combobox';
+import { ProofUploader, type UploadedProof } from './ProofUploader';
+import { deleteCloudinaryImages } from '@/server/actions/cloudinary';
 import { useConsole } from './ConsoleProvider';
 
 const TEXTAREA = { padding: '12px 14px', borderRadius: 14, border: '1.5px solid var(--cp-line)', background: 'var(--cp-bg)', color: 'var(--cp-ink)', font: "500 13.5px/1.45 Outfit,'Noto Sans Tamil',sans-serif", outline: 'none', resize: 'vertical' } as const;
@@ -59,19 +62,21 @@ function Calendar({ due, onPick }: { due: number; onPick: (t: number) => void })
   );
 }
 
-export function ApproveDrawer({ issue, open, onClose, mode = 'approve' }: { issue: Issue; open: boolean; onClose: () => void; mode?: 'approve' | 'edit' }) {
+export function ApproveDrawer({ issue, open, onClose, mode = 'approve' }: { issue: Issue; open: boolean; onClose: () => void; mode?: 'approve' | 'edit' | 'takeup' }) {
   const edit = mode === 'edit';
+  const takeup = mode === 'takeup';
   const { toast } = useConsole();
-  const days = { critical: 5, high: 5, medium: 10, low: 14 }[issue.sev] ?? 7;
+  const depts = govDepts();
+  const days = getConfig().targetDaysBySeverity[issue.sev] ?? 7;
   const t0 = at18(Date.now());
-  const own = GOV_DEPTS.find((g) => g.dept === deptName(issue));
+  const own = depts.find((g) => g.dept === deptName(issue));
   const [dept, setDept] = useState(own?.dept ?? '');
   const [team, setTeam] = useState((edit && issue.team) || own?.team || '');
   const [due, setDue] = useState((edit && issue.due) || t0 + days * D);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const ok = !!(dept && team && due);
-  const quick: [string, number][] = [['In 3 days', 3], ['In 1 week', 7], ['In 2 weeks', 14], ['In 30 days', 30]];
+  const quick: [string, number][] = getConfig().quickTargetDays.map((n) => [n % 7 === 0 ? `In ${n / 7} ${n === 7 ? 'week' : 'weeks'}` : `In ${n} days`, n]);
 
   async function submit() {
     if (!ok || busy) return;
@@ -81,8 +86,8 @@ export function ApproveDrawer({ issue, open, onClose, mode = 'approve' }: { issu
         await editAssignment(await token(), issue.id, { dept, team, due });
         toast(`Assignment updated · ${team} · ${fdate(due)}`);
       } else {
-        const r = await approveCase(await token(), issue.id, { dept, team, due, note });
-        toast(`Approved · ${r.caseId} → ${team} · ${fdate(due)}`);
+        const r = await approveCase(await token(), issue.id, { dept, team, due, note }, { early: takeup });
+        toast(`${takeup ? 'Taken up' : 'Approved'} · ${r.caseId} → ${team} · ${fdate(due)}`);
       }
       onClose();
     } catch (e) { toast(e instanceof Error ? e.message : 'Could not approve'); }
@@ -90,15 +95,15 @@ export function ApproveDrawer({ issue, open, onClose, mode = 'approve' }: { issu
   }
 
   return (
-    <Drawer open={open} onClose={onClose} eyebrow={issue.caseId || issue.id} title={edit ? 'Edit assignment' : 'Approve & assign'}
-      footer={<><LinkButton onClick={onClose}>Cancel</LinkButton><div style={{ flex: 1 }} /><PrimaryButton onClick={submit} disabled={!ok || busy}><i className={`ph-bold ${edit ? 'ph-floppy-disk' : 'ph-check-circle'}`} style={{ marginRight: 8 }} />{edit ? 'Save assignment' : 'Approve & assign'}</PrimaryButton></>}>
+    <Drawer open={open} onClose={onClose} eyebrow={issue.caseId || issue.id} title={edit ? 'Edit assignment' : takeup ? 'Take up as case' : 'Approve & assign'}
+      footer={<><LinkButton onClick={onClose}>Cancel</LinkButton><div style={{ flex: 1 }} /><PrimaryButton onClick={submit} disabled={!ok || busy}><i className={`ph-bold ${edit ? 'ph-floppy-disk' : 'ph-check-circle'}`} style={{ marginRight: 8 }} />{edit ? 'Save assignment' : takeup ? 'Take up & assign' : 'Approve & assign'}</PrimaryButton></>}>
       <span style={{ font: '500 13px/1.35 Outfit,sans-serif', color: 'var(--cp-ink-2)', marginTop: -10 }}>{issue.title}</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Combobox label="Department" icon="ph-buildings" placeholder="Choose a department"
-          options={GOV_DEPTS.map((g) => ({ value: g.dept, label: g.dept, sub: g.team, icon: g.icon }))} value={dept ? [dept] : []}
-          onChange={(v) => { const g = GOV_DEPTS.find((x) => x.dept === v[0]); setDept(g?.dept ?? ''); setTeam(g?.team ?? ''); }} searchPlaceholder="Search departments" />
+          options={depts.map((g) => ({ value: g.dept, label: g.dept, sub: g.team, icon: g.icon }))} value={dept ? [dept] : []}
+          onChange={(v) => { const g = depts.find((x) => x.dept === v[0]); setDept(g?.dept ?? ''); setTeam(g?.team ?? ''); }} searchPlaceholder="Search departments" />
         <Combobox label="Team" icon="ph-users-three" placeholder="Choose a team"
-          options={GOV_DEPTS.map((g) => ({ value: g.team, label: g.team, sub: g.dept, icon: 'ph-users-three' }))} value={team ? [team] : []}
+          options={depts.flatMap((g) => g.teams.map((t) => ({ value: t, label: t, sub: g.dept, icon: 'ph-users-three' })))} value={team ? [team] : []}
           onChange={(v) => setTeam(v[0] ?? '')} searchPlaceholder="Search teams" />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -122,7 +127,7 @@ export function ApproveDrawer({ issue, open, onClose, mode = 'approve' }: { issu
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="e.g. Team will inspect the manhole tomorrow morning." style={TEXTAREA} />
         </label>
       )}
-      <Note>{edit ? 'Supporters see the change on the case timeline.' : 'An official case ID is issued. Every supporter sees the department, team and target date.'}</Note>
+      <Note>{edit ? 'Supporters see the change on the case timeline.' : takeup ? 'Opens an official case now, before the community threshold. Supporters see that it was taken up early, plus the department, team and target date.' : 'An official case ID is issued. Every supporter sees the department, team and target date.'}</Note>
     </Drawer>
   );
 }
@@ -132,29 +137,32 @@ export function RejectDrawer({ issue, open, onClose }: { issue: Issue; open: boo
   const [reason, setReason] = useState<string | null>(null);
   const [ref, setRef] = useState('');
   const [note, setNote] = useState('');
-  const [proof, setProof] = useState<{ l: string; icon: string }[]>([]);
+  const [proof, setProof] = useState<UploadedProof[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const okR = !!reason, okN = note.trim().length >= 15, okP = proof.length > 0, ok = okR && okN && okP;
+  const okR = !!reason, okN = note.trim().length >= 15, okP = proof.length > 0 && !uploading, ok = okR && okN && okP;
+
+  // Closing without submitting must not leave uploaded photos orphaned in Cloudinary.
+  const cancel = () => { if (proof.length) deleteCloudinaryImages(proof.map((p) => p.publicId)).catch(() => {}); onClose(); };
 
   async function submit() {
     if (!ok || busy) return;
     setBusy(true);
     try {
-      await rejectCase(await token(), issue.id, { reason: reason!, note, proof: proof.map((p) => p.l), ref });
+      await rejectCase(await token(), issue.id, { reason: reason!, note, proof: proof.map(({ url, publicId }) => ({ url, publicId })), ref });
       toast('Case rejected · supporters notified with reason');
       onClose();
     } catch (e) { toast(e instanceof Error ? e.message : 'Could not reject'); }
     setBusy(false);
   }
-  const addBtn = { aspectRatio: '1', borderRadius: 14, border: '1.5px dashed var(--cp-ink-3)', background: 'none', color: 'var(--cp-ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, font: '600 11.5px/1.2 Outfit,sans-serif' } as const;
 
   return (
-    <Drawer open={open} onClose={onClose} eyebrow={issue.caseId || issue.id} title="Reject this case"
-      footer={<><LinkButton onClick={onClose}>Cancel</LinkButton><div style={{ flex: 1 }} /><PrimaryButton onClick={submit} disabled={!ok || busy} style={{ background: 'var(--cp-pulse)', color: '#fff' }}><i className="ph-bold ph-x-circle" style={{ marginRight: 8 }} />Reject case</PrimaryButton></>}>
+    <Drawer open={open} onClose={cancel} eyebrow={issue.caseId || issue.id} title="Reject this case"
+      footer={<><LinkButton onClick={cancel}>Cancel</LinkButton><div style={{ flex: 1 }} /><PrimaryButton onClick={submit} disabled={!ok || busy} style={{ background: 'var(--cp-pulse)', color: '#fff' }}><i className="ph-bold ph-x-circle" style={{ marginRight: 8 }} />Reject case</PrimaryButton></>}>
       <span style={{ font: '500 13px/1.35 Outfit,sans-serif', color: 'var(--cp-ink-2)', marginTop: -10 }}>{issue.title}</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <FieldLabel>Reason · required</FieldLabel>
-        {REJECT_REASONS.map(([l, icon]) => {
+        {rejectReasons().map(({ label: l, icon }) => {
           const on = reason === l;
           return (
             <button key={l} onClick={() => setReason(l)} style={{ display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 14px', borderRadius: 14, border: `1.5px solid ${on ? 'var(--cp-ink)' : 'var(--cp-line)'}`, background: on ? 'var(--cp-surface-2)' : 'var(--cp-surface)', color: 'var(--cp-ink)', font: '600 13.5px/1 Outfit,sans-serif', cursor: 'pointer', textAlign: 'left' }}>
@@ -162,7 +170,7 @@ export function RejectDrawer({ issue, open, onClose }: { issue: Issue; open: boo
             </button>
           );
         })}
-        {reason === REJECT_REASONS[0][0] && (
+        {rejectReasons().find((x) => x.label === reason)?.needsRef && (
           <input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="Existing case ID, e.g. CP-CHN-24781" style={{ height: 46, padding: '0 14px', borderRadius: 14, border: '1.5px solid var(--cp-line)', background: 'var(--cp-bg)', color: 'var(--cp-ink)', font: '600 13.5px/1 Outfit,sans-serif', outline: 'none' }} />
         )}
       </div>
@@ -171,29 +179,18 @@ export function RejectDrawer({ issue, open, onClose }: { issue: Issue; open: boo
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Explain what the inspection found, in plain words citizens will understand." style={TEXTAREA} />
       </label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <FieldLabel>Supporting proof · required</FieldLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(100px,1fr))', gap: 8 }}>
-          {proof.map((p, k) => (
-            <div key={k} style={{ position: 'relative', aspectRatio: '1', borderRadius: 14, border: '1px solid var(--cp-line)', background: 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 8px,var(--cp-ph-b) 8px 16px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 8, boxSizing: 'border-box', animation: 'cp-pop2 .2s both' }}>
-              <i className={`ph-bold ${p.icon}`} style={{ position: 'absolute', left: 8, top: 8, fontSize: 16, color: 'var(--cp-ink-2)' }} />
-              <span style={{ font: '600 10.5px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{p.l}</span>
-              <button onClick={() => setProof(proof.filter((_, j) => j !== k))} aria-label="Remove" style={{ position: 'absolute', right: 6, top: 6, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'var(--cp-surface)', color: 'var(--cp-ink)', cursor: 'pointer', fontSize: 11 }}><i className="ph-bold ph-x" /></button>
-            </div>
-          ))}
-          <button onClick={() => setProof([...proof, { l: `Site photo ${proof.filter((p) => p.icon === 'ph-camera').length + 1}`, icon: 'ph-camera' }])} style={addBtn}><i className="ph-bold ph-camera" style={{ fontSize: 20 }} />Site photo</button>
-          <button onClick={() => setProof([...proof, { l: 'Inspection report.pdf', icon: 'ph-file-text' }])} style={addBtn}><i className="ph-bold ph-file-text" style={{ fontSize: 20 }} />Document</button>
-        </div>
+        <FieldLabel>Supporting photos · required</FieldLabel>
+        <ProofUploader value={proof} onChange={setProof} onBusyChange={setUploading} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 14, background: 'var(--cp-surface-2)' }}>
-        {([[okR, 'Reason selected'], [okN, 'Explanation (15+ characters)'], [okP, 'At least one proof attached']] as [boolean, string][]).map(([g, l]) => (
+        {([[okR, 'Reason selected'], [okN, 'Explanation (15+ characters)'], [okP, uploading ? 'Uploading photos…' : 'At least one photo uploaded']] as [boolean, string][]).map(([g, l]) => (
           <span key={l} style={{ display: 'flex', alignItems: 'center', gap: 8, font: '600 12.5px/1.2 Outfit,sans-serif', color: g ? 'var(--cp-ink)' : 'var(--cp-ink-3)' }}><i className={g ? 'ph-fill ph-check-circle' : 'ph-bold ph-circle'} style={{ fontSize: 16 }} />{l}</span>
         ))}
       </div>
-      <Note>The reason, explanation and proof are shown to every citizen who supported this case.</Note>
+      <Note>The reason, explanation and photos are shown to every citizen who supported this case.</Note>
     </Drawer>
   );
 }
-
 
 export function PostUpdateDrawer({ issue, open, onClose }: { issue: Issue; open: boolean; onClose: () => void }) {
   const { toast } = useConsole();
@@ -223,32 +220,26 @@ export function PostUpdateDrawer({ issue, open, onClose }: { issue: Issue; open:
 export function FixDrawer({ issue, open, onClose }: { issue: Issue; open: boolean; onClose: () => void }) {
   const { toast } = useConsole();
   const [note, setNote] = useState('');
-  const [proof, setProof] = useState<string[]>([]);
+  const [proof, setProof] = useState<UploadedProof[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const ok = proof.length > 0;
+  const ok = proof.length > 0 && !uploading;
+  const cancel = () => { if (proof.length) deleteCloudinaryImages(proof.map((p) => p.publicId)).catch(() => {}); onClose(); };
   async function submit() {
     if (!ok || busy) return;
     setBusy(true);
-    try { await markFixed(await token(), issue.id, { note, proof }); toast('Marked fixed · citizens asked to confirm'); onClose(); }
+    try { await markFixed(await token(), issue.id, { note, proof: proof.map(({ url, publicId }) => ({ url, publicId })) }); toast('Marked fixed · citizens asked to confirm'); onClose(); }
     catch (e) { toast(e instanceof Error ? e.message : 'Could not mark fixed'); }
     setBusy(false);
   }
   return (
-    <Drawer open={open} onClose={onClose} eyebrow={issue.caseId || issue.id} title="Mark as fixed"
-      footer={<><LinkButton onClick={onClose}>Cancel</LinkButton><div style={{ flex: 1 }} /><PrimaryButton onClick={submit} disabled={!ok || busy} style={{ background: 'var(--cp-leaf)', color: '#fff' }}><i className="ph-bold ph-check-circle" style={{ marginRight: 8 }} />Send for confirmation</PrimaryButton></>}>
+    <Drawer open={open} onClose={cancel} eyebrow={issue.caseId || issue.id} title="Mark as fixed"
+      footer={<><LinkButton onClick={cancel}>Cancel</LinkButton><div style={{ flex: 1 }} /><PrimaryButton onClick={submit} disabled={!ok || busy} style={{ background: 'var(--cp-leaf)', color: '#fff' }}><i className="ph-bold ph-check-circle" style={{ marginRight: 8 }} />Send for confirmation</PrimaryButton></>}>
       <span style={{ font: '500 13px/1.35 Outfit,sans-serif', color: 'var(--cp-ink-2)', marginTop: -10 }}>{issue.title}</span>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <FieldLabel>After photo · required</FieldLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(100px,1fr))', gap: 8 }}>
-          {proof.map((l, k) => (
-            <div key={k} style={{ position: 'relative', aspectRatio: '1', borderRadius: 14, border: '1px solid var(--cp-line)', background: 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 8px,var(--cp-ph-b) 8px 16px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 8, boxSizing: 'border-box', animation: 'cp-pop2 .2s both' }}>
-              <i className="ph-bold ph-camera" style={{ position: 'absolute', left: 8, top: 8, fontSize: 16, color: 'var(--cp-ink-2)' }} />
-              <span style={{ font: '600 10.5px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{l}</span>
-              <button onClick={() => setProof(proof.filter((_, j) => j !== k))} aria-label="Remove" style={{ position: 'absolute', right: 6, top: 6, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'var(--cp-surface)', color: 'var(--cp-ink)', cursor: 'pointer', fontSize: 11 }}><i className="ph-bold ph-x" /></button>
-            </div>
-          ))}
-          <button onClick={() => setProof([...proof, `Site photo ${proof.length + 1}`])} style={{ aspectRatio: '1', borderRadius: 14, border: '1.5px dashed var(--cp-ink-3)', background: 'none', color: 'var(--cp-ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, font: '600 11.5px/1.2 Outfit,sans-serif' }}><i className="ph-bold ph-camera" style={{ fontSize: 20 }} />Site photo</button>
-        </div>
+        <FieldLabel>After photos · required</FieldLabel>
+        <ProofUploader value={proof} onChange={setProof} onBusyChange={setUploading} />
+        {uploading && <span style={{ font: '500 12px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>Uploading… you can send once every photo is in.</span>}
       </div>
       <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <FieldLabel>Work summary · optional</FieldLabel>

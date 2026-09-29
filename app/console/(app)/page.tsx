@@ -3,9 +3,10 @@ import { useMemo, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { currentOrg } from '@/lib/console/org';
 import { useDesk, useMob } from '@/lib/console/useMob';
-import { caseRow, dur, homeData, byScore, type CaseRow } from '@/lib/console/derive';
+import { caseRow, dur, homeData, byScore, isCase, type CaseRow } from '@/lib/console/derive';
 import { ago } from '@/lib/domain/rules';
 import { useConsole } from '../_components/ConsoleProvider';
+import { DemoTag, RealOnlyEmpty } from '../_components/DemoTag';
 
 const LABEL = { font: '600 11px/1 Outfit,sans-serif', letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--cp-ink-3)' } as const;
 const CARD = { display: 'flex', flexDirection: 'column', padding: '18px 18px 6px', borderRadius: 20, background: 'var(--cp-surface)', border: '1px solid var(--cp-line)' } as const;
@@ -24,7 +25,7 @@ export default function Home() {
   const router = useRouter();
   const mob = useMob();
   const wide = useDesk();
-  const { staff, issues, issuesReady } = useConsole();
+  const { staff, issues, issuesReady, showDemo } = useConsole();
   const d = useMemo(() => homeData(issues), [issues]);
   if (!staff) return null;
 
@@ -49,7 +50,7 @@ export default function Home() {
     <div key={r.id} onClick={() => open(r.id)} style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', padding: '14px 0', borderTop: '1px solid var(--cp-line)', cursor: 'pointer', animation: 'cp-row .3s ease-out both' }}>
       <div style={{ width: 46, height: 46, borderRadius: 13, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center', flex: 'none' }}><i className={`ph-bold ${r.icon}`} style={{ fontSize: 22, color: 'var(--cp-bg)' }} /></div>
       <div style={{ flex: '1 1 220px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.ref} · {r.meta}</span>
+        <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.ref} · {r.meta}{r.demo && <DemoTag />}</span>
         <span style={{ font: '600 14.5px/1.25 Outfit,sans-serif', textWrap: 'pretty' }}>{r.title}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 999, background: r.sevBg, color: r.sevFg, font: '600 11.5px/1 Outfit,sans-serif' }}>{r.sevL}</span>
@@ -85,6 +86,8 @@ export default function Home() {
           </button>
         )}
       </div>
+
+      {issuesReady && !showDemo && !issues.some(isCase) && <RealOnlyEmpty compact />}
 
       {alertN > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 16px', borderRadius: 18, background: 'var(--cp-pulse-soft)', border: '1px solid color-mix(in oklch,var(--cp-pulse) 25%,transparent)' }}>

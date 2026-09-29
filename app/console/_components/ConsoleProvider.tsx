@@ -3,12 +3,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { onAuthStateChanged, signInWithCustomToken, signOut as fbSignOut } from 'firebase/auth';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
-import { currentOrg } from '@/lib/console/org';
-import { deptName } from '@/lib/console/derive';
+import { inJurisdiction } from '@/lib/console/org';
+import { deptName, isDemo } from '@/lib/console/derive';
+import { DEFAULT_CONFIG, setActiveConfig } from '@/lib/console/config';
+import { DEFAULT_PREFS, clearPrefs, readPrefs, writePrefs, type Prefs } from '@/lib/console/prefs';
 import type { Issue } from '@/lib/domain/types';
 import { emptyMapState, type MapState } from '@/lib/console/mapState';
 import { haptic } from '@/lib/haptics';
-import type { StaffProfile } from '@/server/actions/console-auth';
+import { getMe, saveStaffPrefs, type StaffProfile } from '@/server/actions/console-auth';
 
 export type StaffSession = StaffProfile;
 const SESSION_KEY = 'cp-console-staff';
@@ -17,8 +19,19 @@ const RAIL_KEY = 'cp-console-rail';
 interface Ctx {
   staff: StaffSession | null;
   ready: boolean;
-  /** GCC issues, narrowed to the signed-in staff member's departments. */
+  /** True once the org config (departments, SLA, reject reasons) for this session has loaded. */
+  configReady: boolean;
+  /** GCC issues, narrowed to the staff member's departments and (by default) to real, non-demo reports. */
   issues: Issue[];
+  /** Everything in scope regardless of the demo toggle (for personal stats and logs). */
+  allIssues: Issue[];
+  /** This staff member's saved settings (staff/{id}.prefs). */
+  prefs: Prefs;
+  updatePrefs: (patch: Partial<Prefs>) => void;
+  showDemo: boolean;
+  setShowDemo: (v: boolean) => void;
+  /** How many seeded demo issues are in scope (shown or hidden), for the Settings switch. */
+  demoCount: number;
   issuesReady: boolean;
   signIn: (token: string, staff: StaffSession) => Promise<void>;
   signOut: () => void;
@@ -29,47 +42,26 @@ interface Ctx {
   mapState: { current: MapState };
 }
 
-const ConsoleCtx = createContext<Ctx>({ staff: null, ready: false, issues: [], issuesReady: false, signIn: async () => {}, signOut: () => {}, toast: () => {}, railCollapsed: false, toggleRail: () => {}, mapState: { current: emptyMapState() } });
+const ConsoleCtx = createContext<Ctx>({
+  staff: null, ready: false, configReady: false, issues: [], allIssues: [], prefs: DEFAULT_PREFS, updatePrefs: () => {}, showDemo: false, setShowDemo: () => {}, demoCount: 0,
+  issuesReady: false, signIn: async () => {}, signOut: () => {}, toast: () => {}, railCollapsed: false, toggleRail: () => {}, mapState: { current: emptyMapState() },
+});
 export const useConsole = () => useContext(ConsoleCtx);
 
 export function ConsoleProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<StaffSession | null>(null);
   const [ready, setReady] = useState(false);
+  const [configReady, setConfigReady] = useState(false);
   const [railCollapsed, setRail] = useState(false);
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [issuesReady, setIssuesReady] = useState(false);
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  const prefsRef = useRef(prefs);
+  prefsRef.current = prefs;
+  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const mapState = useRef<MapState>(emptyMapState());
   const [msg, setMsg] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  useEffect(() => {
-    try {
-      const s = localStorage.getItem(SESSION_KEY);
-      if (s) setStaff(JSON.parse(s));
-      setRail(localStorage.getItem(RAIL_KEY) === '1');
-    } catch {}
-    setReady(true);
-  }, []);
-
-  // One shared live subscription for every Console screen. Waits for Firebase to restore the
-  // staff session first so reads carry the staff identity.
-  useEffect(() => {
-    if (!staff) { setAllIssues([]); setIssuesReady(false); return; }
-    let unsub: (() => void) | undefined;
-    const off = onAuthStateChanged(auth, () => {
-      unsub?.();
-      unsub = onSnapshot(query(collection(db, 'issues'), orderBy('created', 'desc')), (snap) => {
-        setAllIssues(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Issue)));
-        setIssuesReady(true);
-      }, () => setIssuesReady(true));
-    });
-    return () => { off(); unsub?.(); };
-  }, [staff]);
-
-  const issues = useMemo(
-    () => allIssues.filter((i) => i.city === currentOrg.city && (!staff?.depts.length || staff.depts.includes(deptName(i)))),
-    [allIssues, staff],
-  );
 
   const toast = useCallback((m: string) => {
     haptic();
@@ -77,6 +69,89 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setMsg(null), 2600);
   }, []);
+
+  const signOut = useCallback(() => {
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
+    clearPrefs();
+    clearTimeout(saveTimer.current);
+    setStaff(null);
+    setPrefs(DEFAULT_PREFS);
+    setConfigReady(false);
+    setActiveConfig(DEFAULT_CONFIG);
+    mapState.current = emptyMapState();
+    fbSignOut(auth).catch(() => {});
+  }, []);
+
+  // First paint from the local cache (cached session, settings, rail); the effect below then confirms it with the server.
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem(SESSION_KEY);
+      if (s) setStaff(JSON.parse(s));
+      setRail(localStorage.getItem(RAIL_KEY) === '1');
+      setPrefs(readPrefs());
+    } catch {}
+    setReady(true);
+  }, []);
+
+  // Once signed in: load the live profile, saved settings and org config, then start the shared issues
+  // subscription that every Console screen reads. A cached session that Firebase no longer recognises,
+  // or a deactivated staff account, is signed out.
+  const staffId = staff?.id;
+  useEffect(() => {
+    if (!staffId) { setAllIssues([]); setIssuesReady(false); return; }
+    let cancelled = false;
+    let unsub: (() => void) | undefined;
+    const off = onAuthStateChanged(auth, async (user) => {
+      if (cancelled) return;
+      if (!user) { signOut(); return; }
+      try {
+        const me = await getMe(await user.getIdToken());
+        if (cancelled) return;
+        setActiveConfig(me.config);
+        try { localStorage.setItem(SESSION_KEY, JSON.stringify(me.staff)); } catch {}
+        setStaff(me.staff);
+        setPrefs(me.prefs);
+        writePrefs(me.prefs);
+        setConfigReady(true);
+      } catch {
+        if (!cancelled) signOut();
+        return;
+      }
+      unsub?.();
+      unsub = onSnapshot(query(collection(db, 'issues'), orderBy('created', 'desc')), (snap) => {
+        setAllIssues(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Issue)));
+        setIssuesReady(true);
+      }, () => setIssuesReady(true));
+    });
+    return () => { cancelled = true; off(); unsub?.(); };
+  }, [staffId, signOut]);
+
+  // Settings are saved to the staff record shortly after the last change (and cached locally).
+  const updatePrefs = useCallback((patch: Partial<Prefs>) => {
+    const next = { ...prefsRef.current, ...patch };
+    prefsRef.current = next;
+    setPrefs(next);
+    writePrefs(next);
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const t = await auth.currentUser?.getIdToken();
+        if (t) await saveStaffPrefs(t, prefsRef.current);
+      } catch { toast('Could not save your settings. Check your connection.'); }
+    }, 600);
+  }, [toast]);
+
+  const showDemo = prefs.showDemo;
+  const setShowDemo = useCallback((v: boolean) => updatePrefs({ showDemo: v }), [updatePrefs]);
+
+  // Department names come from the org config, so the scope is recomputed once it has loaded.
+  const scoped = useMemo(
+    () => allIssues.filter((i) => inJurisdiction(i) && (!staff?.depts.length || staff.depts.includes(deptName(i)))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allIssues, staff, configReady],
+  );
+  const issues = useMemo(() => (showDemo ? scoped : scoped.filter((i) => !isDemo(i))), [scoped, showDemo]);
+  const demoCount = useMemo(() => scoped.filter(isDemo).length, [scoped]);
 
   const toggleRail = useCallback(() => {
     setRail((c) => { try { localStorage.setItem(RAIL_KEY, c ? '0' : '1'); } catch {} return !c; });
@@ -89,15 +164,8 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     setStaff(s);
   }, []);
 
-  const signOut = useCallback(() => {
-    try { localStorage.removeItem(SESSION_KEY); } catch {}
-    setStaff(null);
-    mapState.current = emptyMapState();
-    fbSignOut(auth).catch(() => {});
-  }, []);
-
   return (
-    <ConsoleCtx.Provider value={{ staff, ready, issues, issuesReady, signIn, signOut, toast, railCollapsed, toggleRail, mapState }}>
+    <ConsoleCtx.Provider value={{ staff, ready, configReady, issues, allIssues: scoped, prefs, updatePrefs, showDemo, setShowDemo, demoCount, issuesReady, signIn, signOut, toast, railCollapsed, toggleRail, mapState }}>
       {children}
       {msg && (
         <div style={{

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { Issue } from '@/lib/domain/types';
 import { caseRow, govStage, PIN_COLOR, type GovStage } from '@/lib/console/derive';
 import { haptic } from '@/lib/haptics';
+import { DemoTag } from './DemoTag';
 
 // Column order, hint text and drag rules come straight from the design's board view. Only these
 // moves are real actions; anything else explains why it is not allowed.
@@ -66,7 +67,7 @@ export function CasesBoard({ issues, statusFilter, mob, onOpen, onMove }: Props)
                       {r.bar === 'var(--cp-pulse)' && k !== 'reopened' && <span style={{ position: 'absolute', left: 6, bottom: 6, height: 20, padding: '0 7px', borderRadius: 6, background: 'var(--cp-pulse)', color: '#fff', font: '700 10.5px/20px Outfit,sans-serif' }}>Overdue</span>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 4px', minWidth: 0 }}>
-                      <span style={{ font: '500 11.5px/1.1 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.ref} · {i.area}</span>
+                      <span style={{ font: '500 11.5px/1.1 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.ref} · {i.area}{r.demo && <DemoTag />}</span>
                       <span style={{ font: '600 13.5px/1.25 Outfit,sans-serif', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{r.title}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 4px' }}>

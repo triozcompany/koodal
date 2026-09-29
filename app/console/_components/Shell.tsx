@@ -36,7 +36,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const mob = useMob();
   const wide = useWide();
-  const { staff, ready, issues, railCollapsed, toggleRail, signOut, toast } = useConsole();
+  const { staff, ready, configReady, issues, railCollapsed, toggleRail, signOut, toast } = useConsole();
   const pending = issues.filter((i) => govStage(i) === 'pending').length;
   const [logoHover, setLogoHover] = useState(false);
 
@@ -67,7 +67,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   // Route guard. The sign-in screen is built in Phase 3.
   useEffect(() => { if (ready && !staff) router.replace('/console/sign-in'); }, [ready, staff, router]);
-  if (!ready || !staff) return null;
+  if (!ready || !staff || !configReady) return null;
 
   const expanded = wide && !railCollapsed;
   const ini = initials(staff.name);

@@ -81,6 +81,7 @@ export async function castVote(id: string, dir: 'up' | 'down', prevDir: 'up' | '
           caseId = dupTarget.data.caseId;
           caseCreated = true;
           updates.caseId = caseId;
+          updates.thresholdAt = now;
           updates.stage = dupTarget.data.stage;
           updates.dept = dupTarget.data.dept;
           updates.assignee = dupTarget.data.assignee ?? null;
@@ -111,6 +112,11 @@ export async function castVote(id: string, dir: 'up' | 'down', prevDir: 'up' | '
           tx.set(counterRef, { caseSeq }, { merge: true });
           caseId = `CP-CHN-${caseSeq}`;
           updates.caseId = caseId;
+          updates.thresholdAt = now;
+          newEvents.push({
+            ts: now, title: `Community verified · ${newConf}%`, sub: 'Sent to Greater Chennai Corp.',
+            icon: 'ph-shield-check', kind: 'community', photo: '',
+          });
           caseCreated = true;
         }
       }

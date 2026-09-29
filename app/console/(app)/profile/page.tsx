@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { currentOrg } from '@/lib/console/org';
 import { useDesk, useMob } from '@/lib/console/useMob';
-import { crossedAt, dur, evTs, govStage, isCase } from '@/lib/console/derive';
+import { crossedAt, decisionSlaH, dur, govStage, isCase } from '@/lib/console/derive';
 import { useConsole } from '../../_components/ConsoleProvider';
 
 const CARD = { display: 'flex', flexDirection: 'column', borderRadius: 20, background: 'var(--cp-surface)', border: '1px solid var(--cp-line)' } as const;
@@ -13,30 +13,30 @@ export default function Profile() {
   const router = useRouter();
   const mob = useMob();
   const desk = useDesk();
-  const { staff, issues } = useConsole();
+  const { staff, issues, allIssues } = useConsole();
 
   const stats = useMemo(() => {
     const cases = issues.filter(isCase);
-    const decided = cases.filter((i) => evTs(i, /^(Verified by|Not accepted)/));
-    const spans = decided.map((i) => evTs(i, /^(Verified by|Not accepted)/)! - crossedAt(i));
-    const avg = spans.length ? spans.reduce((a, b) => a + b, 0) / spans.length : 0;
+    // Decisions are counted from events stamped with this staff member's ID, so the numbers are personal.
+    const mine = allIssues.flatMap((i) => i.events.filter((e) => e.byId === staff?.id && /^(Verified by|Not accepted)/.test(e.title)).map((e) => e.ts - crossedAt(i)));
+    const avg = mine.length ? mine.reduce((a, b) => a + b, 0) / mine.length : 0;
     const areas: Record<string, number> = {};
     cases.forEach((i) => { areas[i.area] = (areas[i.area] || 0) + 1; });
     return {
       list: [
-        { v: String(decided.length), l: 'Decisions made', s: 'Approvals and rejections' },
-        { v: avg ? dur(avg) : '—', l: 'Avg. time to decide', s: 'Target 48h' },
+        { v: String(mine.length), l: 'Decisions made', s: mine.length ? 'Approvals and rejections by you' : 'Counts start with your next decision' },
+        { v: avg ? dur(avg) : '—', l: 'Avg. time to decide', s: `Target ${decisionSlaH()}h` },
         { v: String(cases.filter((i) => govStage(i) === 'pending').length), l: 'Waiting on you', s: 'Pending approval' },
         { v: String(cases.filter((i) => i.stage === 'closed').length), l: 'Closed by citizens', s: 'In your jurisdiction' },
       ],
       areas: Object.entries(areas).sort((a, b) => b[1] - a[1]),
     };
-  }, [issues]);
+  }, [issues, allIssues, staff?.id]);
 
   if (!staff) return null;
   const scoped = staff.depts.length > 0;
   const info: [string, string][] = [
-    ['Role', scoped ? 'Staff' : 'Admin'], ['Designation', staff.title], ['Departments', scoped ? staff.depts.join(', ') : 'All departments'],
+    ['Role', staff.role === 'admin' ? 'Admin' : 'Staff'], ['Designation', staff.title], ['Departments', scoped ? staff.depts.join(', ') : 'All departments'],
     ['Organization', currentOrg.short], ['Employee ID', staff.id], ['Reports to', staff.reportsTo ?? '—'], ['Office phone', staff.phone ?? '—'],
   ];
 
@@ -52,7 +52,7 @@ export default function Profile() {
         <span style={{ width: 88, height: 88, flex: 'none', borderRadius: '50%', background: 'var(--cp-marigold)', color: '#0f0f0f', font: "400 34px/88px 'DM Serif Display',serif", textAlign: 'center' }}>{initials(staff.name)}</span>
         <div style={{ flex: '1 1 240px', display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 7, font: '700 22px/1.15 Outfit,sans-serif' }}>{staff.name}<i className="ph-fill ph-seal-check" style={{ color: 'var(--cp-peacock)', fontSize: 20 }} /></span>
-          <span style={{ font: '500 14px/1.35 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{staff.title} · {scoped ? 'Staff' : 'Admin'}</span>
+          <span style={{ font: '500 14px/1.35 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{staff.title} · {staff.role === 'admin' ? 'Admin' : 'Staff'}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, font: '500 13px/1.35 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}><i className="ph-bold ph-bank" />{scoped ? staff.depts.join(', ') : 'All departments'} · {currentOrg.short}</span>
         </div>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 12px', borderRadius: 999, background: 'var(--cp-peacock-soft)', color: 'var(--cp-ink)', font: '600 12px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}><i className="ph-fill ph-shield-check" style={{ color: 'var(--cp-peacock)' }} />Verified official</span>

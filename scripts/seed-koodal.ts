@@ -190,7 +190,7 @@ async function main() {
   for (let i = 0; i < issues.length; i += BATCH_SIZE) {
     const batch = db.batch();
     issues.slice(i, i + BATCH_SIZE).forEach((issue) => {
-      batch.set(db.doc(`issues/${issue.id}`), issue);
+      batch.set(db.doc(`issues/${issue.id}`), { ...issue, demo: true }); // demo: hidden by default in the Console
     });
     await batch.commit();
     console.log(`  Written ${Math.min(i + BATCH_SIZE, issues.length)}/${issues.length}`);

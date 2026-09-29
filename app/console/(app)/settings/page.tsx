@@ -3,10 +3,12 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Segmented } from '@/components/ui';
 import { currentOrg } from '@/lib/console/org';
 import { useMob } from '@/lib/console/useMob';
-import { LANGUAGES, usePrefs } from '@/lib/console/prefs';
+import { LANGUAGES } from '@/lib/console/prefs';
+import { auth } from '@/lib/firebase/client';
+import { changeStaffPassword } from '@/server/actions/console-auth';
 import { fdatetime } from '@/lib/console/derive';
 import { useConsole } from '../../_components/ConsoleProvider';
-import { Drawer, PrimaryButton } from '../../_components/Drawer';
+import { Drawer, FieldLabel, LinkButton, PrimaryButton } from '../../_components/Drawer';
 
 const CARD: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 4, padding: '18px 18px 8px', borderRadius: 20, background: 'var(--cp-surface)', border: '1px solid var(--cp-line)' };
 const SECTION: CSSProperties = { font: '600 11px/1 Outfit,sans-serif', letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--cp-ink-3)' };
@@ -59,11 +61,46 @@ function LanguageDrawer({ open, onClose, lang, onPick }: { open: boolean; onClos
   );
 }
 
+function PasswordDrawer({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: () => void }) {
+  const [cur, setCur] = useState('');
+  const [next, setNext] = useState('');
+  const [again, setAgain] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const ok = cur.length > 0 && next.length >= 8 && next === again;
+  const close = () => { setCur(''); setNext(''); setAgain(''); setErr(''); onClose(); };
+  async function submit() {
+    if (!ok || busy) return;
+    setBusy(true); setErr('');
+    try {
+      const t = await auth.currentUser?.getIdToken();
+      if (!t) throw new Error('Session expired. Sign in again.');
+      const r = await changeStaffPassword(t, cur, next);
+      if (!r.ok) setErr(r.error ?? 'Could not change the password.'); else { close(); onDone(); }
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not change the password.'); }
+    setBusy(false);
+  }
+  const input = { height: 50, padding: '0 16px', borderRadius: 14, border: '1.5px solid var(--cp-line)', background: 'var(--cp-bg)', color: 'var(--cp-ink)', font: '600 15px/1 Outfit,sans-serif', outline: 'none' } as const;
+  return (
+    <Drawer dark open={open} onClose={close} eyebrow="Security" title="Change password"
+      footer={<><LinkButton onClick={close}>Cancel</LinkButton><div style={{ flex: 1 }} /><PrimaryButton onClick={submit} disabled={!ok || busy}>Update password</PrimaryButton></>}>
+      {([['Current password', cur, setCur], ['New password', next, setNext], ['Repeat new password', again, setAgain]] as const).map(([l, v, set]) => (
+        <label key={l} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <FieldLabel>{l}</FieldLabel>
+          <input type="password" value={v} onChange={(e) => set(e.target.value)} autoComplete={l === 'Current password' ? 'current-password' : 'new-password'} style={input} />
+        </label>
+      ))}
+      <span style={{ font: '500 12px/1.4 Outfit,sans-serif', color: next && next.length < 8 ? 'var(--cp-pulse-deep)' : 'var(--cp-ink-3)' }}>Use at least 8 characters.{again && next !== again ? ' The two new passwords do not match.' : ''}</span>
+      {err && <span style={{ display: 'flex', alignItems: 'center', gap: 6, font: '600 12.5px/1.3 Outfit,sans-serif', color: 'var(--cp-pulse-deep)' }}><i className="ph-bold ph-warning-circle" />{err}</span>}
+    </Drawer>
+  );
+}
+
 export default function Settings() {
   const mob = useMob();
-  const { staff, issues, signOut, toast } = useConsole();
-  const [prefs, update] = usePrefs();
+  const { staff, allIssues, signOut, toast, showDemo, setShowDemo, demoCount, prefs, updatePrefs: update } = useConsole();
   const [langOpen, setLangOpen] = useState(false);
+  const [pwdOpen, setPwdOpen] = useState(false);
 
   const device = useMemo(() => {
     if (typeof navigator === 'undefined') return 'This browser';
@@ -72,20 +109,23 @@ export default function Settings() {
     return `${b} · ${/Mobile|Android|iPhone/.test(ua) ? 'phone' : 'computer'}`;
   }, []);
 
+  const lastSignIn = auth.currentUser?.metadata.lastSignInTime ? new Date(auth.currentUser.metadata.lastSignInTime).getTime() : 0;
   if (!staff) return null;
   const scoped = staff.depts.length > 0;
   const lang = LANGUAGES.find(([c]) => c === prefs.lang) ?? LANGUAGES[0];
 
-  // The action log is every decision, update and status change visible to this account.
+  // Your action log: every action stamped with your staff ID (approvals, updates, work, fixes).
+  // Actions recorded before staff attribution existed have no ID and cannot be assigned to anyone.
   const exportLog = () => {
     const rows = [['Time', 'Case', 'Action', 'Detail']];
-    issues.forEach((i) => i.events.filter((e) => e.kind === 'gov' || e.kind === 'fix').forEach((e) => rows.push([fdatetime(e.ts), i.caseId || i.id, e.title, e.sub])));
+    allIssues.forEach((i) => i.events.filter((e) => e.byId === staff.id).forEach((e) => rows.push([fdatetime(e.ts), i.caseId || i.id, e.title, e.sub])));
+    if (rows.length === 1) { toast('No recorded actions yet. Your next action will appear here'); return; }
     const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = 'koodal-console-action-log.csv';
+    a.download = `koodal-action-log-${staff.id}.csv`;
     a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500); // give the download time to start
     toast(`Action log downloaded · ${rows.length - 1} entries`);
   };
 
@@ -99,15 +139,27 @@ export default function Settings() {
         <span style={{ width: 48, height: 48, flex: 'none', borderRadius: 14, background: 'var(--cp-marigold)', color: '#0f0f0f', font: '700 16px/48px Outfit,sans-serif', textAlign: 'center' }}>GC</span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
           <span style={{ font: "400 22px/1.1 'DM Serif Display',serif", letterSpacing: '-.01em' }}>{currentOrg.name}</span>
-          <span style={{ font: '500 12.5px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>Government · you&apos;re {scoped ? 'staff' : 'an admin'}</span>
+          <span style={{ font: '500 12.5px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>Government · you&apos;re {staff.role === 'admin' ? 'an admin' : 'staff'}</span>
         </span>
-        <span style={{ flex: 'none', height: 26, padding: '0 11px', borderRadius: 999, background: scoped ? 'var(--cp-peacock-soft)' : 'var(--cp-marigold-soft)', color: 'var(--cp-ink)', font: '600 11.5px/26px Outfit,sans-serif' }}>{scoped ? 'Staff' : 'Admin'}</span>
+        <span style={{ flex: 'none', height: 26, padding: '0 11px', borderRadius: 999, background: staff.role === 'admin' ? 'var(--cp-marigold-soft)' : 'var(--cp-peacock-soft)', color: 'var(--cp-ink)', font: '600 11.5px/26px Outfit,sans-serif' }}>{staff.role === 'admin' ? 'Admin' : 'Staff'}</span>
       </div>
 
       <span style={{ ...SECTION, margin: '4px 0 -8px' }}>Personal</span>
 
       <div style={CARD}>
+        <CardTitle icon="ph-database">Data</CardTitle>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderTop: '1px solid var(--cp-line)' }}>
+          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+            <span style={{ font: '600 13.5px/1.2 Outfit,sans-serif' }}>Show demo data</span>
+            <span style={{ font: '500 12px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{demoCount} sample case{demoCount === 1 ? '' : 's'} came with the design. They are hidden so you only see reports from real citizens. Turn on to show them, tagged Demo.</span>
+          </span>
+          <Switch on={showDemo} label="Show demo data" onClick={() => { setShowDemo(!showDemo); toast(showDemo ? 'Demo data hidden' : 'Demo data shown, tagged Demo'); }} />
+        </div>
+      </div>
+
+      <div style={CARD}>
         <CardTitle icon="ph-bell">Notifications</CardTitle>
+        <span style={{ font: '500 12px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-3)', paddingBottom: 8 }}>Saved to your account. Alerts are not delivered yet, so these choices are kept for when they are.</span>
         {NOTIFS.map(([k, l, s]) => (
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderTop: '1px solid var(--cp-line)' }}>
             <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
@@ -161,14 +213,14 @@ export default function Settings() {
             <span style={{ width: 36, height: 36, flex: 'none', borderRadius: 11, background: 'var(--cp-surface-2)', display: 'grid', placeItems: 'center', fontSize: 17 }}><i className={`ph-bold ${device.includes('phone') ? 'ph-device-mobile' : 'ph-desktop'}`} /></span>
             <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
               <span style={{ font: '600 13px/1.2 Outfit,sans-serif' }}>{device}</span>
-              <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{currentOrg.city} · active now</span>
+              <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{lastSignIn ? `Signed in ${fdatetime(lastSignIn)}` : 'Signed in'}</span>
             </span>
             <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-leaf)', whiteSpace: 'nowrap' }}>This device</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderTop: '1px solid var(--cp-line)' }}>
           <span style={{ flex: 1, font: '600 13.5px/1.2 Outfit,sans-serif' }}>Password</span>
-          <button onClick={() => toast('Password reset link sent to your official email')} style={{ ...GHOST, height: 36, padding: '0 14px', font: '600 12.5px/1 Outfit,sans-serif' }}>Change password</button>
+          <button onClick={() => setPwdOpen(true)} style={{ ...GHOST, height: 36, padding: '0 14px', font: '600 12.5px/1 Outfit,sans-serif' }}>Change password</button>
         </div>
       </div>
 
@@ -187,6 +239,7 @@ export default function Settings() {
         </div>
       </div>
 
+      <PasswordDrawer open={pwdOpen} onClose={() => setPwdOpen(false)} onDone={() => toast('Password changed')} />
       <LanguageDrawer open={langOpen} onClose={() => setLangOpen(false)} lang={prefs.lang} onPick={(c) => { update({ lang: c }); const l = LANGUAGES.find(([x]) => x === c)!; toast(`Language set to ${l[2]}`); setLangOpen(false); }} />
     </div>
     </div>

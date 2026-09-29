@@ -6,12 +6,14 @@ import { useDesk, useMob } from '@/lib/console/useMob';
 import { CATS } from '@/lib/domain/constants';
 import { PIN, SEVL } from '@/lib/domain/stage-style';
 import { ago, slaLeft, stats } from '@/lib/domain/rules';
-import type { Issue } from '@/lib/domain/types';
+import type { Issue, ProofPhoto } from '@/lib/domain/types';
 import { caseRow, crossedAt, decisionDeadline, deptName, dur, evTs, fdate, fdatetime, fixTs, govStage, isOverdue, sdate, type GovStage } from '@/lib/console/derive';
 import { scheduleInspection, startWork } from '@/server/actions/console-cases';
 import { useConsole } from '../../../_components/ConsoleProvider';
 import { ApproveDrawer, FixDrawer, PostUpdateDrawer, RejectDrawer } from '../../../_components/DecisionDrawers';
 import { Drawer, PrimaryButton } from '../../../_components/Drawer';
+import { thumb } from '../../../_components/ProofUploader';
+import { DemoTag } from '../../../_components/DemoTag';
 
 const LABEL = { font: '600 11px/1 Outfit,sans-serif', letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--cp-ink-3)' } as const;
 const CARD = { display: 'flex', flexDirection: 'column', gap: 14, padding: 18, borderRadius: 20, background: 'var(--cp-surface)', border: '1px solid var(--cp-line)' } as const;
@@ -44,13 +46,36 @@ function Btn({ children, onClick, tone = 'ghost', h = 50 }: { children: ReactNod
   );
 }
 
+// Proof is a list of uploaded photos; older records only have text labels.
+const splitProof = (list?: (string | ProofPhoto)[]) => ({
+  photos: (list ?? []).filter((p): p is ProofPhoto => typeof p !== 'string'),
+  labels: (list ?? []).filter((p): p is string => typeof p === 'string'),
+});
+
+function ProofGrid({ photos, labels, onOpen }: { photos: ProofPhoto[]; labels: string[]; onOpen: () => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {photos.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(72px,1fr))', gap: 6 }}>
+          {photos.map((p, k) => (
+            <button key={p.url} onClick={onOpen} aria-label={`Open proof photo ${k + 1}`} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--cp-line)', padding: 0, cursor: 'pointer', background: 'var(--cp-surface-2)' }}>
+              <img src={thumb(p.url, 200)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            </button>
+          ))}
+        </div>
+      )}
+      {labels.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{labels.map((l) => <span key={l} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', borderRadius: 9, background: 'var(--cp-surface-2)', font: '600 12px/1 Outfit,sans-serif' }}><i className="ph-bold ph-paperclip" />{l}</span>)}</div>}
+    </div>
+  );
+}
+
 function CaseDetail({ issue }: { issue: Issue }) {
   const router = useRouter();
   const sp = useSearchParams();
   const mob = useMob();
   const desk = useDesk();
   const { toast } = useConsole();
-  const [drawer, setDrawer] = useState<'approve' | 'reject' | 'photos' | 'assign' | 'update' | 'fix' | null>(null);
+  const [drawer, setDrawer] = useState<'approve' | 'reject' | 'photos' | 'proof' | 'assign' | 'update' | 'fix' | null>(null);
   const [carI, setCarI] = useState(0);
 
   const g = govStage(issue), li = LI[g], st = stats(issue), ca = crossedAt(issue), r = caseRow(issue), sv = SEVL[issue.sev];
@@ -74,7 +99,7 @@ function CaseDetail({ issue }: { issue: Issue }) {
     else if (t === 'Evidence withdrawn' || /edited by author/.test(t)) s = '';
     else if (/says: not fixed$/.test(t)) s = s ? `Reason: ${s}` : '';
     const [bg, fg] = KC[e.kind] ?? KC.citizen;
-    return { t, s, icon: e.icon, bg, fg, date: fdatetime(e.ts) };
+    return { t, s, icon: e.icon, bg, fg, date: fdatetime(e.ts), by: e.by, photo: e.photo?.startsWith('http') ? e.photo : '' };
   });
 
   const photos = issue.evidence;
@@ -114,6 +139,8 @@ function CaseDetail({ issue }: { issue: Issue }) {
   const goBack = () => { if (window.history.length > 1) router.back(); else router.push('/console/cases'); };
   const place = `${issue.street}, ${issue.area}, ${issue.city}`;
   const carN = Math.max(1, Math.min(12, photoN));
+  const fixP = splitProof(issue.fixProof), rejP = splitProof(issue.rejectProof);
+  const proofPhotos = g === 'rejected' ? rejP.photos : fixP.photos;
 
   return (
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: mob ? '18px 16px 28px' : '26px 28px 64px', display: 'flex', flexDirection: 'column', gap: 18, boxSizing: 'border-box', animation: 'cp-in .35s cubic-bezier(.2,.9,.25,1.1) both' }}>
@@ -158,7 +185,7 @@ function CaseDetail({ issue }: { issue: Issue }) {
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 26, padding: '0 10px', borderRadius: 999, background: sv[0], color: sv[1], font: '600 12px/1 Outfit,sans-serif' }}><i className="ph-fill ph-warning" />{sv[2]}</span>
               {isOverdue(issue) && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 26, padding: '0 10px', borderRadius: 999, background: 'var(--cp-pulse)', color: '#fff', font: '600 12px/1 Outfit,sans-serif' }}><i className="ph-bold ph-alarm" />{r.sla}</span>}
               {issue.history && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 26, padding: '0 10px', borderRadius: 999, background: 'var(--cp-surface-2)', font: '600 12px/1 Outfit,sans-serif' }}><i className="ph-bold ph-repeat" />Recurring</span>}
-              <span style={{ font: '500 12.5px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap' }}>{cat.l} · {issue.id}</span>
+              <span style={{ font: '500 12.5px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap' }}>{cat.l} · {issue.id}{r.demo && <DemoTag />}</span>
             </div>
             <span style={{ fontFamily: "'DM Serif Display',serif", fontWeight: 400, fontSize: mob ? 28 : 36, lineHeight: 1.06, letterSpacing: '-.03em', textWrap: 'balance' }}>{issue.title}</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, font: '500 13.5px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}><i className="ph-fill ph-map-pin" style={{ color: 'var(--cp-pulse)' }} />{place}</span>
@@ -247,7 +274,8 @@ function CaseDetail({ issue }: { issue: Issue }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 0 16px', minWidth: 0 }}>
                   <span style={{ font: '600 13.5px/1.25 Outfit,sans-serif' }}>{e.t}</span>
                   {e.s && <span style={{ font: '500 12.5px/1.35 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{e.s}</span>}
-                  <span style={{ font: '500 11px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)', letterSpacing: '.04em' }}>{e.date}</span>
+                  <span style={{ font: '500 11px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)', letterSpacing: '.04em' }}>{e.date}{e.by ? ` · by ${e.by}` : ''}</span>
+                  {e.photo && <button onClick={() => setDrawer('proof')} aria-label="Open proof photo" style={{ width: 64, height: 64, marginTop: 4, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--cp-line)', padding: 0, cursor: 'pointer', background: 'var(--cp-surface-2)' }}><img src={thumb(e.photo, 200)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></button>}
                 </div>
               </div>
             ))}
@@ -296,6 +324,8 @@ function CaseDetail({ issue }: { issue: Issue }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 10, borderRadius: 12, background: 'var(--cp-leaf-soft)' }}><span style={{ font: '700 16px/1 Outfit,sans-serif' }}>{issue.confirms}</span><span style={{ font: '500 11.5px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>say fixed</span></div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: 10, borderRadius: 12, background: 'var(--cp-pulse-soft)' }}><span style={{ font: '700 16px/1 Outfit,sans-serif' }}>{issue.disputes ?? 0}</span><span style={{ font: '500 11.5px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>say not fixed</span></div>
               </div>
+              {(fixP.photos.length > 0 || fixP.labels.length > 0) && <ProofGrid photos={fixP.photos} labels={fixP.labels} onOpen={() => setDrawer('proof')} />}
+              {issue.fixNote && <span style={{ font: '500 12.5px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{issue.fixNote}</span>}
               <span style={{ font: '500 12px/1.45 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>Closes automatically at {issue.needed} confirmations. Reopens if 3 citizens say it isn&apos;t fixed. Officials can&apos;t close cases directly.</span>
             </div>
           )}
@@ -304,6 +334,7 @@ function CaseDetail({ issue }: { issue: Issue }) {
               <span style={{ display: 'flex', alignItems: 'center', gap: 7, font: '600 11px/1 Outfit,sans-serif', letterSpacing: '.14em', textTransform: 'uppercase' }}><i className="ph-fill ph-seal-check" style={{ fontSize: 15 }} />Closed by citizens</span>
               <span style={{ font: "400 24px/1.05 'DM Serif Display',serif" }}>{issue.confirms} of {issue.needed} confirmed the fix</span>
               <span style={{ font: '500 13px/1.4 Outfit,sans-serif', opacity: 0.92 }}>Resolved in {fixTs(issue) ? dur(fixTs(issue)! - ca) : '—'} · {issue.team || issue.assignee}</span>
+              {fixP.photos.length > 0 && <ProofGrid photos={fixP.photos} labels={[]} onOpen={() => setDrawer('proof')} />}
             </div>
           )}
           {g === 'rejected' && (
@@ -312,7 +343,7 @@ function CaseDetail({ issue }: { issue: Issue }) {
               <span style={{ font: "400 22px/1.1 'DM Serif Display',serif" }}>{issue.reject}</span>
               {issue.rejectNote && <span style={{ font: '500 13px/1.45 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{issue.rejectNote}</span>}
               {issue.rejectRef && <span style={{ font: '600 12.5px/1 Outfit,sans-serif' }}>Reference · {issue.rejectRef}</span>}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{(issue.rejectProof ?? []).map((l) => <span key={l} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 10px', borderRadius: 9, background: 'var(--cp-surface-2)', font: '600 12px/1 Outfit,sans-serif' }}><i className="ph-bold ph-paperclip" />{l}</span>)}</div>
+              <ProofGrid photos={rejP.photos} labels={rejP.labels} onOpen={() => setDrawer('proof')} />
               <span style={{ font: '500 12px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>Reason and proof are visible to citizens who supported this case.</span>
             </div>
           )}
@@ -341,6 +372,17 @@ function CaseDetail({ issue }: { issue: Issue }) {
       {drawer === 'assign' && <ApproveDrawer key={`e-${issue.id}`} mode="edit" issue={issue} open onClose={() => setDrawer(null)} />}
       {drawer === 'update' && <PostUpdateDrawer key={`u-${issue.id}`} issue={issue} open onClose={() => setDrawer(null)} />}
       {drawer === 'fix' && <FixDrawer key={`f-${issue.id}`} issue={issue} open onClose={() => setDrawer(null)} />}
+      <Drawer open={drawer === 'proof'} onClose={() => setDrawer(null)} eyebrow={r.ref} title={g === 'rejected' ? 'Reject proof' : 'Fix proof'}
+        footer={<><div style={{ flex: 1 }} /><PrimaryButton onClick={() => setDrawer(null)}>Done</PrimaryButton></>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {proofPhotos.map((p) => (
+            <div key={p.url} style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--cp-line)', background: 'var(--cp-surface-2)' }}>
+              <img src={p.url} alt="Proof photo" style={{ display: 'block', width: '100%', height: 'auto' }} />
+              <span style={{ position: 'absolute', left: 10, bottom: 10, height: 24, padding: '0 9px', borderRadius: 8, background: 'rgb(0 0 0 / .55)', color: '#fff', font: '600 11.5px/24px Outfit,sans-serif' }}>{p.by} · {ago(p.ts)} ago</span>
+            </div>
+          ))}
+        </div>
+      </Drawer>
       <Drawer open={drawer === 'photos'} onClose={() => setDrawer(null)} eyebrow={r.ref} title={`${photoN} photos`}
         footer={<><div style={{ flex: 1 }} /><PrimaryButton onClick={() => setDrawer(null)}>Done</PrimaryButton></>}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

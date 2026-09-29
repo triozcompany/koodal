@@ -7,6 +7,7 @@ import type { Category } from '@/lib/domain/types';
 import { caseMatches, caseRow, deptName, isCase, searchTokens, SORT_FN, STATUS_OPTS, statusMatches } from '@/lib/console/derive';
 import { useConsole } from '../../_components/ConsoleProvider';
 import { CaseFilterDrawer } from '../../_components/CaseFilterDrawer';
+import { DemoTag } from '../../_components/DemoTag';
 
 const RECENT_KEY = 'cp-console-recent';
 const LABEL = { font: '600 11px/1 Outfit,sans-serif', letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--cp-ink-3)' } as const;
@@ -165,7 +166,7 @@ function SearchInner() {
                 <div key={r.id} onClick={() => { remember(q); router.push(`/console/cases/${r.id}`); }} className="cp-hover-row" style={{ display: 'grid', gridTemplateColumns: '42px minmax(0,1fr) auto', gap: 12, alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--cp-line)', cursor: 'pointer' }}>
                   <div style={{ width: 42, height: 42, borderRadius: 13, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center' }}><i className={`ph-bold ${r.icon}`} style={{ fontSize: 20, color: 'var(--cp-bg)' }} /></div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-                    <span style={{ font: '500 12px/1.1 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><span style={{ color: 'var(--cp-ink-2)' }}>{r.ref}</span> · {results.find((i) => i.id === r.id)?.street} · {r.dept}</span>
+                    <span style={{ font: '500 12px/1.1 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><span style={{ color: 'var(--cp-ink-2)' }}>{r.ref}</span> · {results.find((i) => i.id === r.id)?.street} · {r.dept}{r.demo && <DemoTag />}</span>
                     <span style={{ font: '600 14px/1.25 Outfit,sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
                   </div>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 24, padding: '0 9px', borderRadius: 999, background: r.stageBg, color: r.stageFg, font: '600 11.5px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}><i className={`ph-bold ${r.stageIcon}`} />{r.stageShort}</span>

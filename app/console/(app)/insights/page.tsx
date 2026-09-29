@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useDesk, useMob } from '@/lib/console/useMob';
 import { CATS, D } from '@/lib/domain/constants';
 import type { Category } from '@/lib/domain/types';
-import { caseRow, fdate, GOV_DEPTS, isCase, sdate } from '@/lib/console/derive';
+import { caseRow, fdate, govDepts, isCase, sdate } from '@/lib/console/derive';
 import { buckets, calc, isoD, nice, parseD, RANGES, RES_BINS, resolveRange, sod, toRecs, type Calc, type RangeKey } from '@/lib/console/insights';
 import { useConsole } from '../../_components/ConsoleProvider';
 import { Combobox } from '../../_components/Combobox';
@@ -181,7 +181,7 @@ export default function Insights() {
     Object.entries(o).sort((a, b) => b[1].n - a[1].n).slice(0, limit).map(([k, x]) => ({ k, l: label(k), icon: icon(k), n: x.n, f: x.f }));
   const toggle = (arr: string[], set: (v: string[]) => void) => (k: string) => set(arr.includes(k) ? arr.filter((x) => x !== k) : [...arr, k]);
 
-  const dAgg = GOV_DEPTS.map(({ dept }) => {
+  const dAgg = govDepts().map(({ dept }) => {
     const op = cur.op.filter((r) => r.dept === dept), fx = cur.fx.filter((r) => r.dept === dept);
     return {
       dn: dept, n: op.length, open: op.filter((r) => !r.fixed).length,
@@ -215,7 +215,7 @@ export default function Insights() {
     const blob = new Blob([rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = `koodal-insights-${isoD(r0)}-${isoD(r1)}.csv`; a.click();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500); // give the download time to start
     toast(`Exported ${cur.opened} cases · ${rangeL}`);
   };
 
@@ -261,7 +261,7 @@ export default function Insights() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit,minmax(${mob ? 200 : 220}px,1fr))`, gap: 8 }}>
           <Combobox label="Area" icon="ph-map-pin" placeholder="All areas" multi searchPlaceholder="Search areas" options={[...new Set(all.map((r) => r.area))].sort().map((v) => ({ value: v, label: v, count: all.filter((r) => r.area === v).length }))} value={fArea} onChange={setFArea} />
-          <Combobox label="Department" icon="ph-buildings" placeholder="All departments" multi searchPlaceholder="Search departments" options={GOV_DEPTS.filter((g) => all.some((r) => r.dept === g.dept)).map((g) => ({ value: g.dept, label: g.dept, icon: g.icon, count: all.filter((r) => r.dept === g.dept).length }))} value={fDept} onChange={setFDept} />
+          <Combobox label="Department" icon="ph-buildings" placeholder="All departments" multi searchPlaceholder="Search departments" options={govDepts().filter((g) => all.some((r) => r.dept === g.dept)).map((g) => ({ value: g.dept, label: g.dept, icon: g.icon, count: all.filter((r) => r.dept === g.dept).length }))} value={fDept} onChange={setFDept} />
           <Combobox label="Problem type" icon="ph-squares-four" placeholder="All types" multi searchPlaceholder="Search types" options={(Object.keys(CATS) as Category[]).filter((k) => all.some((r) => r.cat === k)).map((k) => ({ value: k, label: CATS[k].l, icon: CATS[k].icon, count: all.filter((r) => r.cat === k).length }))} value={fCat} onChange={setFCat} />
         </div>
       </div>
@@ -351,7 +351,7 @@ export default function Insights() {
               ))}
             </div>
             {dAgg.map((x) => {
-              const g = GOV_DEPTS.find((d) => d.dept === x.dn)!;
+              const g = govDepts().find((d) => d.dept === x.dn)!;
               const cell = (v: string, w: string, bc: string, warn = false) => (
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-end' }}>
                   <span style={{ font: '700 13px/1 Outfit,sans-serif', color: warn ? 'var(--cp-pulse-deep)' : 'var(--cp-ink)' }}>{v}</span>
