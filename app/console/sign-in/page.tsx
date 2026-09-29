@@ -28,8 +28,8 @@ export default function SignIn() {
   const desk = useDesk();
   const { staff, ready, signIn } = useConsole();
   const [step, setStep] = useState<'id' | 'otp'>('id');
-  const [empId, setEmpId] = useState('GCC-1001');
-  const [pwd, setPwd] = useState('koodal-demo');
+  const [empId, setEmpId] = useState('');
+  const [pwd, setPwd] = useState('');
   const [otp, setOtp] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,7 +42,7 @@ export default function SignIn() {
     setBusy(true); setErr('');
     try {
       const r = await checkStaffCredentials(empId, pwd);
-      if (!r.ok) setErr('Employee ID or password is incorrect.'); else setStep('otp');
+      if (!r.ok) setErr(r.error ?? 'Employee ID or password is incorrect.'); else setStep('otp');
     } catch { setErr('Could not reach the server. Try again.'); }
     setBusy(false);
   }
@@ -53,7 +53,7 @@ export default function SignIn() {
     setBusy(true); setErr('');
     try {
       const r = await signInStaff(empId, pwd);
-      if (!r) { setErr('Session expired. Sign in again.'); setStep('id'); }
+      if ('error' in r) { setErr(r.error); setStep('id'); }
       else { await signIn(r.token, r.staff); router.replace('/console'); return; }
     } catch { setErr('Could not sign you in. Try again.'); }
     setBusy(false);
@@ -122,7 +122,7 @@ export default function SignIn() {
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ ...H1, fontSize: mob ? 30 : 34 }}>Enter the 6-digit code</span>
-                <span style={SUB}>Sent to the phone registered for {empId.trim().toUpperCase()}. Demo: any six digits.</span>
+                <span style={SUB}>Demo mode: enter any six digits. Text-message codes are not switched on yet.</span>
               </div>
               <input
                 autoFocus inputMode="numeric" maxLength={6} value={otp}

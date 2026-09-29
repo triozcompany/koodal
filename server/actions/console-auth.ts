@@ -1,34 +1,104 @@
 'use server';
-import { adminAuth } from '@/lib/firebase/admin';
+import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { firebaseConfig } from '@/lib/firebase/config';
+import { loadOrgConfig } from '@/lib/console/orgConfig.server';
+import { DEFAULT_PREFS, type Prefs } from '@/lib/console/prefs.shared';
+import type { OrgConfig } from '@/lib/console/config';
 
-// Demo staff directory for Greater Chennai Corp. Plain-text passwords are acceptable only
-// because this is a hackathon mock; it never leaves the server (non-exported, 'use server').
-// depts: [] means the staff member sees every department.
-const STAFF = [
-  { id: 'GCC-1001', password: 'koodal-demo', name: 'Divya Raghavan', title: 'Commissioner’s Office', depts: [] as string[] },
-  { id: 'GCC-2041', password: 'koodal-demo', name: 'Priya Natarajan', title: 'Junior Engineer', depts: ['Roads'], email: 'priya.natarajan@chennaicorporation.gov.in', phone: '+91 98402 11041', reportsTo: 'AE Farida Begum' },
-  { id: 'GCC-2042', password: 'koodal-demo', name: 'Farida Begum', title: 'Assistant Engineer', depts: ['Water & Drainage', 'Sanitation'], email: 'farida.begum@chennaicorporation.gov.in', phone: '+91 98402 11042', reportsTo: 'Executive Engineer, Zone 13' },
-];
+// Staff identity: each staff member is a Firebase Auth user (password hashed and rate-limited by Firebase)
+// plus a non-secret profile in `staff/{empId}`. Nothing secret is stored in Firestore.
+export interface StaffProfile { id: string; name: string; title: string; depts: string[]; role: 'admin' | 'staff'; email?: string; phone?: string; reportsTo?: string }
 
-function find(empId: string, password: string) {
-  const id = empId.trim().toUpperCase();
-  return STAFF.find((s) => s.id === id && s.password === password);
+const authEmail = (id: string) => `${id.toLowerCase()}@staff.koodal.internal`;
+const normId = (s: string) => s.trim().toUpperCase();
+const MAX_FAILS = 5;
+const LOCK_MS = 5 * 60_000;
+const GENERIC = 'Employee ID or password is incorrect.';
+
+type StaffDoc = StaffProfile & { active?: boolean; failedAttempts?: number; lockUntil?: number | null; prefs?: Partial<Prefs> };
+
+const profileOf = (d: StaffDoc): StaffProfile => ({
+  id: d.id, name: d.name, title: d.title, depts: d.depts ?? [], role: d.role === 'admin' ? 'admin' : 'staff', email: d.email, phone: d.phone, reportsTo: d.reportsTo,
+});
+
+/** Checks the password against Firebase Auth, with a 5-attempt lockout kept on the staff record. */
+async function checkPassword(empId: string, password: string): Promise<{ ok: true; doc: StaffDoc } | { ok: false; error: string }> {
+  const id = normId(empId);
+  if (!id || !password) return { ok: false, error: 'Enter your employee ID and password.' };
+  const ref = adminDb.doc(`staff/${id}`);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data()!.active === false) return { ok: false, error: GENERIC };
+  const doc = { id, ...snap.data() } as StaffDoc;
+  if (doc.lockUntil && doc.lockUntil > Date.now()) {
+    return { ok: false, error: `Too many attempts. Try again in ${Math.ceil((doc.lockUntil - Date.now()) / 60_000)} min.` };
+  }
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseConfig.apiKey}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: authEmail(id), password, returnSecureToken: false }),
+  });
+  if (!res.ok) {
+    const code = String(((await res.json().catch(() => ({}))) as { error?: { message?: string } }).error?.message ?? '');
+    // Only a genuinely wrong password counts toward the lockout. Firebase's own throttling or a network
+    // problem must not lock out someone who typed the right password.
+    if (!/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(code)) {
+      return { ok: false, error: /TOO_MANY_ATTEMPTS/.test(code) ? 'Too many attempts. Wait a minute and try again.' : 'Could not check your password right now. Try again.' };
+    }
+    const fails = (doc.failedAttempts ?? 0) + 1;
+    await ref.update(fails >= MAX_FAILS ? { failedAttempts: 0, lockUntil: Date.now() + LOCK_MS } : { failedAttempts: fails });
+    return { ok: false, error: fails >= MAX_FAILS ? `Too many attempts. Try again in ${LOCK_MS / 60_000} min.` : GENERIC };
+  }
+  if (doc.failedAttempts || doc.lockUntil) await ref.update({ failedAttempts: 0, lockUntil: null });
+  return { ok: true, doc };
 }
 
-export interface StaffProfile { id: string; name: string; title: string; depts: string[]; email?: string; phone?: string; reportsTo?: string }
-
-/** Step 1: check employee ID + password. The OTP screen only opens if this passes. */
-export async function checkStaffCredentials(empId: string, password: string): Promise<{ ok: boolean }> {
-  return { ok: !!find(empId, password) };
+/** Step 1 of sign-in: employee ID + password. The code screen only opens if this passes. */
+export async function checkStaffCredentials(empId: string, password: string): Promise<{ ok: boolean; error?: string }> {
+  const r = await checkPassword(empId, password);
+  return r.ok ? { ok: true } : { ok: false, error: r.error };
 }
 
-/**
- * Step 2, after the (mocked) OTP: re-verify the credentials and mint a Firebase custom token
- * carrying a `staff` claim, so server actions and rules can tell staff from citizens.
- */
-export async function signInStaff(empId: string, password: string): Promise<{ token: string; staff: StaffProfile } | null> {
-  const s = find(empId, password);
-  if (!s) return null;
-  const token = await adminAuth.createCustomToken(`staff_${s.id}`, { staff: true, org: 'gcc', depts: s.depts, staffName: s.name });
-  return { token, staff: { id: s.id, name: s.name, title: s.title, depts: s.depts, email: s.email, phone: s.phone, reportsTo: s.reportsTo } };
+/** Step 2, after the (demo) code: re-check the password and mint the Firebase custom token with the staff claims. */
+export async function signInStaff(empId: string, password: string): Promise<{ token: string; staff: StaffProfile } | { error: string }> {
+  const r = await checkPassword(empId, password);
+  if (!r.ok) return { error: r.error };
+  const staff = profileOf(r.doc);
+  const token = await adminAuth.createCustomToken(`staff_${staff.id}`, { staff: true, org: 'gcc', depts: staff.depts, staffName: staff.name, staffId: staff.id, role: staff.role });
+  return { token, staff };
+}
+
+async function whoAmI(idToken: string) {
+  const t = await adminAuth.verifyIdToken(idToken);
+  if (!t.staff) throw new Error('Not authorised');
+  return { t, id: (t.staffId as string | undefined) ?? t.uid.replace(/^staff_/, '') };
+}
+
+/** Fresh profile, saved settings and org config for a signed-in session (called on every load). */
+export async function getMe(idToken: string): Promise<{ staff: StaffProfile; prefs: Prefs; config: OrgConfig }> {
+  const { id } = await whoAmI(idToken);
+  const snap = await adminDb.doc(`staff/${id}`).get();
+  if (!snap.exists || snap.data()!.active === false) throw new Error('This staff account is no longer active');
+  const doc = { id, ...snap.data() } as StaffDoc;
+  return { staff: profileOf(doc), prefs: { ...DEFAULT_PREFS, ...(doc.prefs ?? {}) }, config: await loadOrgConfig() };
+}
+
+export async function saveStaffPrefs(idToken: string, prefs: Prefs) {
+  const { id } = await whoAmI(idToken);
+  const clean: Prefs = {
+    lang: typeof prefs.lang === 'string' ? prefs.lang.slice(0, 5) : DEFAULT_PREFS.lang,
+    notif: Object.fromEntries(Object.keys(DEFAULT_PREFS.notif).map((k) => [k, !!prefs.notif?.[k]])),
+    ch: Object.fromEntries(Object.keys(DEFAULT_PREFS.ch).map((k) => [k, !!prefs.ch?.[k]])),
+    timeout: (['15m', '30m', '60m'] as const).includes(prefs.timeout) ? prefs.timeout : DEFAULT_PREFS.timeout,
+    showDemo: !!prefs.showDemo,
+  };
+  await adminDb.doc(`staff/${id}`).set({ prefs: clean }, { merge: true });
+}
+
+export async function changeStaffPassword(idToken: string, current: string, next: string): Promise<{ ok: boolean; error?: string }> {
+  const { id, t } = await whoAmI(idToken);
+  if (next.length < 8) return { ok: false, error: 'Use at least 8 characters.' };
+  if (next === current) return { ok: false, error: 'Choose a different password.' };
+  const r = await checkPassword(id, current);
+  if (!r.ok) return { ok: false, error: r.error === GENERIC ? 'Your current password is incorrect.' : r.error };
+  await adminAuth.updateUser(t.uid, { password: next });
+  return { ok: true };
 }
