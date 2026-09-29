@@ -187,7 +187,7 @@ function EditProfileDrawer({ name, area, onSave, onClose }: { name: string; area
 
         <div style={{ display: 'flex', gap: 10, padding: '14px 20px 20px', borderTop: '1px solid var(--cp-line)', flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: 3, minWidth: 0, height: 52, borderRadius: 999, border: '1px solid var(--cp-line)', background: 'linear-gradient(180deg,var(--cp-surface),var(--cp-surface-2))', color: 'var(--cp-ink)', font: '600 13.5px/1 Outfit,sans-serif', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={() => onSave(pName, pArea)} style={{ flex: 7, minWidth: 0, height: 52, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 14.5px/1 Outfit,sans-serif', cursor: 'pointer' }}>Save profile</button>
+          <button data-glare="1" onClick={() => onSave(pName, pArea)} style={{ flex: 7, minWidth: 0, height: 52, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 14.5px/1 Outfit,sans-serif', cursor: 'pointer' }}>Save profile</button>
         </div>
       </div>
     </>

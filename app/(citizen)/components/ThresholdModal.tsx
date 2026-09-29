@@ -132,7 +132,7 @@ export function ThresholdModal({ issue, onClose, onTrack }: Props) {
           <button style={{ flex: '3 1 0', minWidth: 0, height: 48, borderRadius: 999, border: '1px solid var(--cp-line)', background: 'var(--cp-surface)', color: 'var(--cp-ink)', font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
             <i className="ph-bold ph-share-fat"></i>Share
           </button>
-          <button onClick={onTrack} style={{ flex: '7 1 0', minWidth: 0, height: 48, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 14px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <button data-glare="1" onClick={onTrack} style={{ flex: '7 1 0', minWidth: 0, height: 48, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 14px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             Track verification<i className="ph-bold ph-arrow-right"></i>
           </button>
         </div>

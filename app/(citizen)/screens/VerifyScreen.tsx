@@ -94,7 +94,7 @@ export function VerifyScreen({ issue: d, mob, onBack, onValidate }: Props) {
       <span style={{ font: '500 13px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-3)', textAlign: 'center', maxWidth: 280 }}>
         Your confirmation helps close cases and hold {corp(d)} accountable.
       </span>
-      <button
+      <button data-glare="1"
         onClick={onBack}
         style={{ marginTop: 8, height: 52, padding: '0 28px', borderRadius: 999, background: 'var(--cp-ink)', color: 'var(--cp-bg)', border: 'none', font: '600 14px/1 Outfit,sans-serif', cursor: 'pointer' }}
       >
@@ -223,7 +223,7 @@ export function VerifyScreen({ issue: d, mob, onBack, onValidate }: Props) {
         >
           <i className="ph-bold ph-thumbs-down" />Not yet
         </button>
-        <button
+        <button data-glare="1"
           onClick={handleFixed}
           disabled={submitting}
           style={{ flex: 7, height: 56, borderRadius: 999, border: 'none', background: 'var(--cp-leaf)', color: '#fff', font: '600 15px/1 Outfit,sans-serif', cursor: 'pointer', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: submitting ? 0.7 : 1 }}

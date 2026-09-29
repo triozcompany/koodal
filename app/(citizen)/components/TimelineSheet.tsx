@@ -75,7 +75,7 @@ export function TimelineSheet({ issue: d, mob, onVerify, onClose }: Props) {
 
   const verifyBtn = actVerify && onVerify ? (
     <div style={{ padding: '12px 16px 16px', borderTop: '1px solid var(--cp-line)', flexShrink: 0 }}>
-      <button
+      <button data-glare="1"
         onClick={() => { onClose(); onVerify(); }}
         style={{ width: '100%', height: 54, borderRadius: 999, border: 'none', background: 'var(--cp-leaf)', color: '#fff', font: '600 15px/1 Outfit,sans-serif', cursor: 'pointer', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
       >

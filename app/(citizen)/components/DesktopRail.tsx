@@ -52,7 +52,7 @@ export function DesktopRail({ wide, onReport, meInitials, needConfirm = 0 }: Pro
         </div>
 
         {/* Report */}
-        <button
+        <button data-glare="1"
           onClick={onReport}
           title="Report issue"
           style={{ width: 44, height: 44, flexShrink: 0, borderRadius: '50%', background: 'var(--cp-surface-2)', color: 'var(--cp-ink)', border: 'none', cursor: 'pointer', fontSize: 20, display: 'grid', placeItems: 'center', marginBottom: 8 }}
@@ -164,7 +164,7 @@ export function DesktopRail({ wide, onReport, meInitials, needConfirm = 0 }: Pro
       </button>
 
       {/* Report CTA */}
-      <button
+      <button data-glare="1"
         onClick={onReport}
         title="Report an issue"
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, height: 52, margin: '0 2px 14px', borderRadius: 999, background: 'var(--cp-ink)', color: 'var(--cp-bg)', border: '1px solid var(--cp-line)', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', font: '600 15px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', whiteSpace: 'nowrap' }}

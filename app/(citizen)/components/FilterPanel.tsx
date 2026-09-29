@@ -113,7 +113,7 @@ export function FilterPanel({ f, onChange, onClose, desktop, trendingTags }: Pro
   const footer = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 24px', flexShrink: 0, borderTop: '1px solid var(--cp-line)' }}>
       <button onClick={clearAll} style={{ flex: '3 1 0', minWidth: 0, height: 52, border: 'none', background: 'none', color: 'var(--cp-ink)', font: '600 14px/1 Outfit,sans-serif', textDecoration: 'underline', textUnderlineOffset: 4, cursor: 'pointer' }}>Clear all</button>
-      <button onClick={apply} style={{ flex: '7 1 0', minWidth: 0, height: 52, borderRadius: 999, background: 'var(--cp-ink)', color: 'var(--cp-bg)', border: 'none', font: '600 15px/1 Outfit,sans-serif', cursor: 'pointer' }}>
+      <button data-glare="1" onClick={apply} style={{ flex: '7 1 0', minWidth: 0, height: 52, borderRadius: 999, background: 'var(--cp-ink)', color: 'var(--cp-bg)', border: 'none', font: '600 15px/1 Outfit,sans-serif', cursor: 'pointer' }}>
         {draftN ? `Show results · ${draftN} filter${draftN > 1 ? 's' : ''}` : 'Show results'}
       </button>
     </div>

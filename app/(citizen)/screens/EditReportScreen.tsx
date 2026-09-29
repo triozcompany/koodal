@@ -131,7 +131,7 @@ export function EditReportScreen({ issue, mob, onClose, onSave, onDelete }: Prop
               >
                 <i className="ph-bold ph-trash"></i> Delete
               </button>
-              <button
+              <button data-glare="1"
                 onClick={() => onSave(eTitle.trim() || issue.title, eText.trim(), eTags)}
                 style={{ flex: 7, minWidth: 0, height: 54, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 15px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .12s' }}
               >
@@ -146,7 +146,7 @@ export function EditReportScreen({ issue, mob, onClose, onSave, onDelete }: Prop
               >
                 Keep it
               </button>
-              <button
+              <button data-glare="1"
                 onClick={onDelete}
                 style={{ flex: 7, minWidth: 0, height: 54, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 15px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .12s' }}
               >

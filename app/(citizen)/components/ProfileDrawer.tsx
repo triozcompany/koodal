@@ -103,7 +103,7 @@ export function ProfileDrawer({ issues, supported, meInitials, meVerified, meNam
         </div>
 
         <div style={{ padding: '10px 20px 24px' }}>
-          <button
+          <button data-glare="1"
             onClick={() => go('/profile')}
             style={{ width: '100%', height: 50, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 14px/1 Outfit,sans-serif', cursor: 'pointer' }}
           >

@@ -1,6 +1,6 @@
 'use client';
 import type { Issue } from '@/lib/domain/types';
-import { CATS } from '@/lib/domain/constants';
+import { CATS, issueIcon } from '@/lib/domain/constants';
 import { ago, step } from '@/lib/domain/rules';
 import { StagePill, pillColors } from './StagePill';
 import { ProgressBar } from './ProgressBar';
@@ -35,7 +35,7 @@ export function IssueCard({ issue, supported, onOpen, onSupport, why, feedStyle 
         )}
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <div style={{ width: 46, height: 46, borderRadius: 13, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-            <i className={`ph-bold ${cat.icon}`} style={{ fontSize: 22, color: 'var(--cp-bg)' }}></i>
+            <i className={`ph-bold ${issueIcon(issue)}`} style={{ fontSize: 22, color: 'var(--cp-bg)' }}></i>
           </div>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
             <div style={{ font: '500 12px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{meta}</div>
@@ -63,7 +63,7 @@ export function IssueCard({ issue, supported, onOpen, onSupport, why, feedStyle 
     <div style={{ boxShadow: 'inset 3px 0 0 transparent' }}>
       <div onClick={onOpen} style={{ display: 'grid', gridTemplateColumns: '46px minmax(0,1fr) 54px', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--cp-line)', cursor: 'pointer', alignItems: 'start', background: 'var(--cp-surface)' }}>
         <div style={{ width: 46, height: 46, borderRadius: 13, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center' }}>
-          <i className={`ph-bold ${cat.icon}`} style={{ fontSize: 22, color: 'var(--cp-bg)' }}></i>
+          <i className={`ph-bold ${issueIcon(issue)}`} style={{ fontSize: 22, color: 'var(--cp-bg)' }}></i>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
           <div style={{ font: '500 12px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{meta}</div>

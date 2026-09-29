@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Issue } from '@/lib/domain/types';
-import { CATS, SEVW } from '@/lib/domain/constants';
+import { CATS, SEVW, issueIcon } from '@/lib/domain/constants';
 import { PILL, SEGC, TRACK } from '@/lib/domain/stage-style';
 import { ago, score, step, caseBadge, dedupeCases } from '@/lib/domain/rules';
 import { matchesFilter } from '@/lib/domain/filters';
@@ -72,7 +72,7 @@ export function TileCard({ issue, onOpen, onEdit }: { issue: Issue; onOpen: (id:
       <div style={{ position: 'relative', aspectRatio: '4/3', background: 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)' }}>
         <span style={{ position: 'absolute', left: 10, top: 10, height: 22, padding: '0 8px', borderRadius: 11, background: pc, color: pfg, font: '600 11px/22px Outfit,sans-serif', whiteSpace: 'nowrap' }}>{pl}</span>
         <span style={{ position: 'absolute', right: 10, top: 10, width: 30, height: 30, borderRadius: 10, background: 'var(--cp-ink)', color: 'var(--cp-bg)', display: 'grid', placeItems: 'center', fontSize: 15 }}>
-          <i className={`ph-bold ${CATS[issue.cat]?.icon}`} />
+          <i className={`ph-bold ${issueIcon(issue)}`} />
         </span>
         <span style={{ position: 'absolute', left: 10, bottom: 10, display: 'flex', alignItems: 'center', gap: 5, height: 24, padding: '0 8px', borderRadius: 12, background: 'var(--cp-surface)', font: '600 11px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}>
           <i className="ph-bold ph-images" />
@@ -140,7 +140,7 @@ export function CaseCard({ issue, onOpen, needsYou, onConfirmFix }: { issue: Iss
     >
       <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 14, overflow: 'hidden', background: 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)', border: '1px solid var(--cp-line)' }}>
         <div style={{ position: 'absolute', left: 10, top: 10, width: 32, height: 32, borderRadius: 10, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center' }}>
-          <i className={`ph-bold ${CATS[issue.cat]?.icon}`} style={{ color: 'var(--cp-bg)', fontSize: 16 }} />
+          <i className={`ph-bold ${issueIcon(issue)}`} style={{ color: 'var(--cp-bg)', fontSize: 16 }} />
         </div>
         <span style={{ position: 'absolute', right: 10, bottom: 10, display: 'flex', alignItems: 'center', gap: 6, height: 26, padding: '0 10px', borderRadius: 999, background: 'var(--cp-surface)', font: '600 11.5px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}>
           <i className="ph-bold ph-images" />{photoN} · {contribN} people
@@ -148,7 +148,7 @@ export function CaseCard({ issue, onOpen, needsYou, onConfirmFix }: { issue: Iss
       </div>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 14, background: pc, color: pfg, display: 'grid', placeItems: 'center', fontSize: 20 }}>
-          <i className={`ph-bold ${CATS[issue.cat]?.icon}`} />
+          <i className={`ph-bold ${issueIcon(issue)}`} />
         </div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 7, font: '500 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
