@@ -4,10 +4,10 @@ export type Category = 'road' | 'drain' | 'garbage' | 'light' | 'water' | 'tree'
 export type Priority = 'P1' | 'P2' | 'P3';
 
 export interface Voice { lang: string; text: string; en: string; }
-export interface MergedReport { by: string; h: number; text: string; sim: number; me?: boolean; }
-export interface Evidence { by: string; uid: string; ts: number; }
+export interface MergedReport { by: string; h: number; text: string; sim: number; me?: boolean; id?: string; }
+export interface Evidence { id?: string; by: string; uid: string; ts: number; kind?: 'initial' | 'followup'; }
 export interface IssueEvent { ts: number; title: string; sub: string; icon: string; kind: string; photo: string; }
-export interface Comment { by: string; text: string; ts: number; me?: boolean; }
+export interface Comment { id?: string; by: string; uid?: string; text: string; ts: number; me?: boolean; edited?: boolean; }
 
 export interface Issue {
   id: string;
@@ -59,14 +59,6 @@ export interface Issue {
   fixNote?: string;
 }
 
-export interface UserActions {
-  support: Record<string, boolean>;
-  opposed: Record<string, boolean>;
-  contrib: Record<string, boolean>;
-  validated: Record<string, number>;
-  confirmed: Record<string, number>;
-}
-
 export interface Me {
   verified: boolean;
   anonDefault: boolean;
@@ -76,11 +68,3 @@ export interface Me {
   phone?: string;
 }
 
-export interface AppState {
-  v: number;
-  issues: Issue[];
-  my: UserActions;
-  me: Me;
-  seq: number;
-  caseSeq: number;
-}

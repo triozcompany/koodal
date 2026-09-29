@@ -2,6 +2,7 @@
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { CATS, CITY, TAGS } from '@/lib/domain/constants';
+import type { Issue } from '@/lib/domain/types';
 
 const SCENES = {
   sewage: { cat: 'water', sev: 'critical', label: 'Sewage overflow', title: 'Sewage overflowing onto the road', size: '~15 m stretch', risk: 'Health hazard · bus stop 30 m', street: '100 Feet Rd, Vijayanagar', x: 48, y: 47, dept: 'Water & Sewerage' },
@@ -32,7 +33,6 @@ export async function submitReport(opts: {
   const summary = `${sc.label} at ${sc.street}, Velachery. ${sc.risk}.`;
 
   const counterRef = adminDb.doc('counters/issue');
-  const issueRef = adminDb.collection('issues').doc();
 
   const id = await adminDb.runTransaction(async tx => {
     const snap = await tx.get(counterRef);
@@ -40,7 +40,8 @@ export async function submitReport(opts: {
     tx.set(counterRef, { seq }, { merge: true });
 
     const issueId = `CP-${seq}`;
-    const issue = {
+    const issueRef = adminDb.doc(`issues/${issueId}`);
+    const issue: Issue = {
       id: issueId,
       cat: sc.cat,
       sev: sc.sev,
@@ -60,6 +61,7 @@ export async function submitReport(opts: {
       by: who,
       dept: sc.dept,
       summary,
+      voice: null,
       text: opts.text,
       tags,
       comments: [],
@@ -79,6 +81,7 @@ export async function submitReport(opts: {
         by: initials,
         uid: 'me',
         ts: now + k,
+        kind: 'initial' as const,
       })),
       events: [{
         ts: now,
@@ -121,6 +124,7 @@ export async function joinIssue(opts: {
       by: initials,
       uid: 'me',
       ts: now + k,
+      kind: 'initial' as const,
     }));
     const mergeEntry = {
       by: who,

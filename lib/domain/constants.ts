@@ -34,7 +34,7 @@ export const ORDER: Stage[] = ['reported', 'community', 'review', 'verified', 'a
 
 export const USERS = ['Karthik S', 'Priya M', 'Arun K', 'Meena V', 'Senthil R', 'Lakshmi N', 'Farhan A', 'Revathi P', 'Vignesh B', 'Anitha J', 'Suresh T', 'Kavya R'];
 
-export const ME = { name: 'Divya Raghavan', short: 'DR', area: 'Velachery, Chennai', phone: '+91 98401 23456' };
+export const ME = { name: 'Divya Raghavan', short: 'DR', area: 'Velachery, Chennai', phone: '+91 98401 23456', uid: 'me' };
 
 export const VERIFIER = 'AE R. Ganesan';
 

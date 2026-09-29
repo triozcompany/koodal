@@ -1,5 +1,6 @@
 import type { Issue } from './types';
 import { CATS, CITY, STAGES, SEVW, D, H } from './constants';
+import { SLA_PILL } from './stage-style';
 
 export function deptFor(cat: string, city: string): string {
   const c = CITY[city];
@@ -56,4 +57,35 @@ export function stats(issue: Issue) {
     contributors: new Set(issue.evidence.map((e) => e.uid || e.by)).size,
     photos: issue.evidence.length,
   };
+}
+
+export function topTags(issues: Issue[], limit = 8): { t: string; n: number }[] {
+  const map: Record<string, number> = {};
+  issues.forEach(i => (i.tags ?? []).forEach(t => { map[t] = (map[t] ?? 0) + 1; }));
+  return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([t, n]) => ({ t, n }));
+}
+
+/** Cases-list badge — stage-aware: resolved shows citizen-confirmation
+ * progress, closed/rejected show a plain label, everything else shows SLA. */
+export function caseBadge(issue: Issue): { label: string; bg: string; fg: string } {
+  if (issue.stage === 'closed') return { label: 'Closed', bg: 'var(--cp-surface-2)', fg: 'var(--cp-ink-2)' };
+  if (issue.stage === 'rejected') return { label: 'Not accepted', bg: 'var(--cp-surface-2)', fg: 'var(--cp-ink-3)' };
+  if (issue.stage === 'resolved') return { label: `${issue.confirms}/${issue.needed} confirmed`, bg: 'var(--cp-leaf-soft)', fg: 'var(--cp-ink)' };
+  const [bg, fg] = SLA_PILL[slaRisk(issue)];
+  return { label: slaLeft(issue) || 'On track', bg, fg };
+}
+
+/** Two independent duplicate reports can each cross the case threshold and end
+ * up sharing one caseId (see castVote's dedup-merge guard) — collapse them to
+ * one row per real case here, keeping whichever issue was created first (the
+ * original case-creator; a later-merged issue is always chronologically after
+ * it, by construction). */
+export function dedupeCases(issues: Issue[]): Issue[] {
+  const byCase = new Map<string, Issue>();
+  for (const i of issues) {
+    if (!i.caseId) continue;
+    const existing = byCase.get(i.caseId);
+    if (!existing || i.created < existing.created) byCase.set(i.caseId, i);
+  }
+  return Array.from(byCase.values());
 }

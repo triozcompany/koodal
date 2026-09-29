@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import type { Issue } from '@/lib/domain/types';
-import type { FilterState } from './FilterPanel';
+import type { FilterState } from '@/lib/domain/filters';
 
 const CORP: Record<string, string> = {
   Chennai: 'Greater Chennai Corp',

@@ -4,11 +4,9 @@ import type { Issue } from '@/lib/domain/types';
 import { CATS } from '@/lib/domain/constants';
 import { PILL, SEGC, PIN } from '@/lib/domain/stage-style';
 import { step, ago } from '@/lib/domain/rules';
-import type { FilterState } from '../components/FilterPanel';
+import type { FilterState } from '@/lib/domain/filters';
+import { PIN_PREVIEW_DARK } from '@/lib/domain/map-pin-theme';
 import styles from './DesktopHome.module.css';
-
-const CATS_ENTRIES = Object.entries(CATS);
-
 
 interface Props {
   issues: Issue[];
@@ -19,7 +17,6 @@ interface Props {
   onSupport: (id: string) => void;
   supported: Record<string, boolean>;
   fCount: number;
-  onCatChip: (cat: string) => void;
   onSearch: () => void;
   wide: boolean;
   mapMaximized: boolean;
@@ -27,7 +24,7 @@ interface Props {
   onMapMinimize: () => void;
 }
 
-export function DesktopHome({ issues, f, onFilter, onLocation, onOpen, onSupport, supported, fCount, onCatChip, wide, mapMaximized, onMapMaximize, onMapMinimize }: Props) {
+export function DesktopHome({ issues, f, onFilter, onLocation, onOpen, onSupport, supported, fCount, wide, mapMaximized, onMapMaximize, onMapMinimize }: Props) {
   const [listOpen, setListOpen] = useState(true);
   const [selId, setSelId]           = useState<string | null>(null);
   const [panX, setPanX]             = useState(0);
@@ -106,13 +103,8 @@ export function DesktopHome({ issues, f, onFilter, onLocation, onOpen, onSupport
   const selData  = hasSel && selIssue ? (() => {
     const it    = cardData(selIssue);
     const selOn = !!supported[selIssue.id];
-    return { ...it, sbD: selOn ? 'var(--cp-pulse)' : '#1e1e1e', conf: selIssue.conf };
+    return { ...it, sbD: selOn ? 'var(--cp-pulse)' : PIN_PREVIEW_DARK.supportBtnBg, conf: selIssue.conf };
   })() : null;
-
-  const chips = [
-    ['all', 'All', 'ph-squares-four'] as const,
-    ...CATS_ENTRIES.map(([k, c]) => [k, c.l, c.icon] as const),
-  ];
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `${listW} minmax(0,1fr)`, transition: 'grid-template-columns .35s cubic-bezier(.2,.9,.3,1)', height: '100vh', animation: 'cp-row .3s ease-out both' }}>
@@ -134,21 +126,6 @@ export function DesktopHome({ issues, f, onFilter, onLocation, onOpen, onSupport
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', margin: '0 -20px', padding: '0 20px' }}>
-            {chips.map(([k, label, icon]) => {
-              const on = k === 'all' ? !f.cat.length : (f.cat.length === 1 && f.cat[0] === k);
-              return (
-                <button
-                  key={k}
-                  onClick={() => onCatChip(k)}
-                  style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 12px', borderRadius: 999, border: `1.5px solid ${on ? 'var(--cp-ink)' : 'var(--cp-line)'}`, background: on ? 'var(--cp-ink)' : 'var(--cp-surface)', color: on ? 'var(--cp-bg)' : 'var(--cp-ink)', font: '600 12px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .15s' }}
-                >
-                  <i className={`ph-bold ${icon}`} />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -318,26 +295,26 @@ export function DesktopHome({ issues, f, onFilter, onLocation, onOpen, onSupport
           <div
             onClick={() => onOpen(selIssue.id)}
             data-cp-theme="dark"
-            style={{ position: 'absolute', right: 20, bottom: 20, width: 'min(340px,calc(100% - 40px))', boxSizing: 'border-box', borderRadius: 22, background: '#0d0d0d', color: '#f5f5f5', border: '1px solid #262626', boxShadow: '0 24px 50px -18px rgb(0 0 0 / .55)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'cp-row .3s cubic-bezier(.2,.9,.3,1.2) both', zIndex: 9, cursor: 'pointer' }}
+            style={{ position: 'absolute', right: 20, bottom: 20, width: 'min(340px,calc(100% - 40px))', boxSizing: 'border-box', borderRadius: 22, background: PIN_PREVIEW_DARK.cardBg, color: PIN_PREVIEW_DARK.cardText, border: PIN_PREVIEW_DARK.cardBorder, boxShadow: '0 24px 50px -18px rgb(0 0 0 / .55)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'cp-row .3s cubic-bezier(.2,.9,.3,1.2) both', zIndex: 9, cursor: 'pointer' }}
           >
-            <div style={{ position: 'relative', height: 150, flexShrink: 0, background: 'repeating-linear-gradient(135deg,#1a1a1a 0 12px,#222 12px 24px)' }}>
-              <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', font: '500 11px/1 Outfit,sans-serif', color: '#bdbdbd', background: '#141414', padding: '6px 9px', borderRadius: 6, whiteSpace: 'nowrap' }}>community photo</span>
+            <div style={{ position: 'relative', height: 150, flexShrink: 0, background: `repeating-linear-gradient(135deg,${PIN_PREVIEW_DARK.photoGradientA} 0 12px,${PIN_PREVIEW_DARK.photoGradientB} 12px 24px)` }}>
+              <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', font: '500 11px/1 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, background: '#141414', padding: '6px 9px', borderRadius: 6, whiteSpace: 'nowrap' }}>community photo</span>
               <span style={{ position: 'absolute', left: 12, top: 12, display: 'inline-flex', alignItems: 'center', height: 26, padding: '0 10px', borderRadius: 999, background: selData.pc, color: selData.pfg, font: '600 11.5px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}>{selData.pl}</span>
               <button
                 onClick={e => { e.stopPropagation(); setSelId(null); }}
                 title="Close"
-                style={{ position: 'absolute', right: 10, top: 10, width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgb(0 0 0 / .55)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'grid', placeItems: 'center' }}
+                style={{ position: 'absolute', right: 10, top: 10, width: 32, height: 32, borderRadius: '50%', border: 'none', background: PIN_PREVIEW_DARK.closeBtnBg, color: PIN_PREVIEW_DARK.closeBtnFg, cursor: 'pointer', fontSize: 13, display: 'grid', placeItems: 'center' }}
               >
                 <i className="ph-bold ph-x" />
               </button>
-              <span style={{ position: 'absolute', left: 12, bottom: 12, width: 34, height: 34, borderRadius: 11, background: '#fff', display: 'grid', placeItems: 'center' }}>
-                <i className={`ph-bold ${selData.icon}`} style={{ fontSize: 17, color: '#0f0f0f' }} />
+              <span style={{ position: 'absolute', left: 12, bottom: 12, width: 34, height: 34, borderRadius: 11, background: PIN_PREVIEW_DARK.openBtnBg, display: 'grid', placeItems: 'center' }}>
+                <i className={`ph-bold ${selData.icon}`} style={{ fontSize: 17, color: PIN_PREVIEW_DARK.openBtnFg }} />
               </span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px 16px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-                <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selData.meta}</span>
+                <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selData.meta}</span>
                 <span style={{ font: '600 16px/1.25 Outfit,sans-serif', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } as React.CSSProperties}>{selData.title}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -345,17 +322,17 @@ export function DesktopHome({ issues, f, onFilter, onLocation, onOpen, onSupport
                   onClick={e => { e.stopPropagation(); onSupport(selIssue.id); }}
                   title="Support"
                   className={styles.selSupportBtn}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, padding: '0 13px', borderRadius: 999, border: '1px solid #2e2e2e', background: selData.sbD, color: '#fff', font: '700 13px/1 Outfit,sans-serif', cursor: 'pointer', flexShrink: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, padding: '0 13px', borderRadius: 999, border: PIN_PREVIEW_DARK.supportBtnBorder, background: selData.sbD, color: PIN_PREVIEW_DARK.supportBtnFg, font: '700 13px/1 Outfit,sans-serif', cursor: 'pointer', flexShrink: 0 }}
                 >
                   <i className={selData.si} style={{ fontSize: 16 }} />
                   {selData.n}
                 </button>
-                <span style={{ font: '600 12.5px/1 Outfit,sans-serif', color: '#bdbdbd', whiteSpace: 'nowrap' }}>{selData.conf}%</span>
+                <span style={{ font: '600 12.5px/1 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap' }}>{selData.conf}%</span>
                 <div style={{ flex: 1 }} />
                 <button
                   data-glare="1"
                   onClick={e => { e.stopPropagation(); onOpen(selIssue.id); }}
-                  style={{ height: 40, padding: '0 16px', borderRadius: 999, background: '#fff', color: '#0f0f0f', border: 'none', font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', flexShrink: 0 }}
+                  style={{ height: 40, padding: '0 16px', borderRadius: 999, background: PIN_PREVIEW_DARK.openBtnBg, color: PIN_PREVIEW_DARK.openBtnFg, border: 'none', font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', flexShrink: 0 }}
                 >
                   Open
                   <i className="ph-bold ph-arrow-right" />

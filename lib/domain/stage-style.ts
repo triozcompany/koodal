@@ -70,3 +70,10 @@ export const AVB: string[] = [
   'var(--cp-pulse-soft)',
   'var(--cp-leaf-soft)',
 ];
+
+/** SLA pill [bg, fg] by slaRisk() — 0 on-track, 1 due soon, 2 overdue */
+export const SLA_PILL: Record<0 | 1 | 2, [string, string]> = {
+  0: ['var(--cp-surface-2)', 'var(--cp-ink-2)'],
+  1: ['var(--cp-marigold-soft)', 'var(--cp-ink)'],
+  2: ['var(--cp-pulse-soft)', 'var(--cp-pulse-deep)'],
+};

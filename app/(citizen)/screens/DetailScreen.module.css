@@ -5,3 +5,6 @@
 .cmtBtn:active { transform: translateY(2px) scale(.985); box-shadow: 0 0 0 transparent !important; transition: transform .12s; }
 .lkBtn { transition: transform .12s; }
 .lkBtn:active { transform: translateY(2px) scale(.985); box-shadow: 0 0 0 transparent !important; }
+.mosaicBtn { transition: filter .2s; }
+.mosaicBtn:hover { filter: brightness(.93); }
+.showAllBtn:active { transform: scale(.96); }

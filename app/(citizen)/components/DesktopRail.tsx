@@ -1,31 +1,29 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
-
-type Screen = string;
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface Props {
-  screen: Screen;
   wide: boolean;
-  onNav: (s: string) => void;
   onReport: () => void;
   meInitials: string;
   needConfirm?: number;
 }
 
 const NAV = [
-  { key: 'home',  icon: 'ph-map-trifold',     label: 'Nearby'   },
-  { key: 'feed',  icon: 'ph-newspaper',        label: 'Feed'     },
-  { key: 'search',icon: 'ph-magnifying-glass', label: 'Search'   },
-  { key: 'cases', icon: 'ph-briefcase',        label: 'Cases'    },
+  { key: 'home',  href: '/nearby',  icon: 'ph-map-trifold',     label: 'Nearby'   },
+  { key: 'feed',  href: '/feeds',   icon: 'ph-newspaper',        label: 'Feed'     },
+  { key: 'search',href: '/search',  icon: 'ph-magnifying-glass', label: 'Search'   },
+  { key: 'cases', href: '/cases',   icon: 'ph-briefcase',        label: 'Cases'    },
 ];
 
-function isActive(screen: Screen, key: string) {
-  if (key === 'home') return ['home', 'detail'].includes(screen);
-  return screen === key;
+function isActive(pathname: string, href: string) {
+  return pathname.startsWith(href);
 }
 
-export function DesktopRail({ screen, wide, onNav, onReport, meInitials, needConfirm = 0 }: Props) {
+export function DesktopRail({ wide, onReport, meInitials, needConfirm = 0 }: Props) {
+  const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [hovered, setHovered]     = useState(false);
 
@@ -63,34 +61,43 @@ export function DesktopRail({ screen, wide, onNav, onReport, meInitials, needCon
         </button>
 
         {/* Nav */}
-        {NAV.map(({ key, icon, label }) => {
-          const active = isActive(screen, key);
+        {NAV.map(({ key, href, icon, label }) => {
+          const active = isActive(pathname, href);
           const badge = key === 'cases' && needConfirm > 0;
           return (
-            <button
+            <Link
               key={key}
-              onClick={() => onNav(key)}
+              href={href}
               title={label}
-              style={{ position: 'relative', width: 44, height: 44, flexShrink: 0, borderRadius: '50%', background: active ? 'var(--cp-surface-2)' : 'transparent', color: active ? 'var(--cp-ink)' : 'var(--cp-ink-3)', border: 'none', cursor: 'pointer', fontSize: 22, display: 'grid', placeItems: 'center' }}
+              style={{ position: 'relative', width: 44, height: 44, flexShrink: 0, borderRadius: '50%', background: active ? 'var(--cp-surface-2)' : 'transparent', color: active ? 'var(--cp-ink)' : 'var(--cp-ink-3)', border: 'none', cursor: 'pointer', fontSize: 22, display: 'grid', placeItems: 'center', textDecoration: 'none' }}
             >
               <i className={`${active ? 'ph-fill' : 'ph-bold'} ${icon}`} />
               {badge && (
                 <span style={{ position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: 'var(--cp-marigold)', color: '#000', font: '700 10px/16px Outfit,sans-serif', textAlign: 'center', boxSizing: 'border-box' }}>{needConfirm}</span>
               )}
-            </button>
+            </Link>
           );
         })}
 
         <div style={{ flex: 1 }} />
 
+        {/* Settings */}
+        <Link
+          href="/settings"
+          title="Settings"
+          style={{ width: 44, height: 44, flexShrink: 0, borderRadius: '50%', background: isActive(pathname, '/settings') ? 'var(--cp-surface-2)' : 'transparent', color: isActive(pathname, '/settings') ? 'var(--cp-ink)' : 'var(--cp-ink-3)', border: 'none', cursor: 'pointer', fontSize: 20, display: 'grid', placeItems: 'center', textDecoration: 'none', marginBottom: 4 }}
+        >
+          <i className={`${isActive(pathname, '/settings') ? 'ph-fill' : 'ph-bold'} ph-gear-six`} />
+        </Link>
+
         {/* Avatar */}
-        <button
-          onClick={() => onNav('profile')}
+        <Link
+          href="/profile"
           title="Profile"
-          style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '50%', background: 'var(--cp-marigold)', color: 'var(--cp-on-marigold)', border: 'none', cursor: 'pointer', font: "400 11px/32px 'DM Serif Display',serif", textAlign: 'center' }}
+          style={{ width: 32, height: 32, flexShrink: 0, borderRadius: '50%', background: 'var(--cp-marigold)', color: 'var(--cp-on-marigold)', border: 'none', cursor: 'pointer', font: "400 11px/32px 'DM Serif Display',serif", textAlign: 'center', textDecoration: 'none', display: 'grid', placeItems: 'center' }}
         >
           {meInitials}
-        </button>
+        </Link>
       </nav>
     );
   }
@@ -167,36 +174,46 @@ export function DesktopRail({ screen, wide, onNav, onReport, meInitials, needCon
       </button>
 
       {/* Nav items */}
-      {NAV.map(({ key, icon, label }) => {
-        const active = isActive(screen, key);
+      {NAV.map(({ key, href, icon, label }) => {
+        const active = isActive(pathname, href);
         const badge = key === 'cases' && needConfirm > 0;
         return (
-          <button
+          <Link
             key={key}
-            onClick={() => onNav(key)}
+            href={href}
             title={label}
-            style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12, height: 46, padding: '0 14px', border: 'none', borderRadius: 999, background: active ? 'var(--cp-surface-2)' : 'transparent', color: active ? 'var(--cp-ink)' : 'var(--cp-ink-3)', font: '600 13.5px/1 Outfit,sans-serif', cursor: 'pointer', textAlign: 'left' }}
+            style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12, height: 46, padding: '0 14px', border: 'none', borderRadius: 999, background: active ? 'var(--cp-surface-2)' : 'transparent', color: active ? 'var(--cp-ink)' : 'var(--cp-ink-3)', font: '600 13.5px/1 Outfit,sans-serif', cursor: 'pointer', textAlign: 'left', textDecoration: 'none' }}
           >
             <i className={`${active ? 'ph-fill' : 'ph-bold'} ${icon}`} style={{ fontSize: 22 }} />
             <span style={{ flex: 1 }}>{label}</span>
             {badge && (
               <span style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 999, background: 'var(--cp-marigold)', color: '#000', font: '700 11px/20px Outfit,sans-serif', textAlign: 'center', boxSizing: 'border-box' }}>{needConfirm}</span>
             )}
-          </button>
+          </Link>
         );
       })}
 
       <div style={{ flex: 1 }} />
 
+      {/* Settings */}
+      <Link
+        href="/settings"
+        title="Settings"
+        style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12, height: 46, padding: '0 14px', border: 'none', borderRadius: 999, background: isActive(pathname, '/settings') ? 'var(--cp-surface-2)' : 'transparent', color: isActive(pathname, '/settings') ? 'var(--cp-ink)' : 'var(--cp-ink-3)', font: '600 13.5px/1 Outfit,sans-serif', cursor: 'pointer', textAlign: 'left', textDecoration: 'none' }}
+      >
+        <i className={`${isActive(pathname, '/settings') ? 'ph-fill' : 'ph-bold'} ph-gear-six`} style={{ fontSize: 22 }} />
+        <span style={{ flex: 1 }}>Settings</span>
+      </Link>
+
       {/* Profile */}
-      <button
-        onClick={() => onNav('profile')}
+      <Link
+        href="/profile"
         title="Profile"
-        style={{ display: 'flex', alignItems: 'center', gap: 12, height: 46, padding: '0 11px', border: 'none', borderRadius: 999, background: 'transparent', color: 'var(--cp-ink)', font: '600 13.5px/1 Outfit,sans-serif', cursor: 'pointer', textAlign: 'left' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 12, height: 46, padding: '0 11px', border: 'none', borderRadius: 999, background: 'transparent', color: 'var(--cp-ink)', font: '600 13.5px/1 Outfit,sans-serif', cursor: 'pointer', textAlign: 'left', textDecoration: 'none' }}
       >
         <span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: '50%', background: 'var(--cp-marigold)', color: 'var(--cp-on-marigold)', font: "400 11px/28px 'DM Serif Display',serif", textAlign: 'center' }}>{meInitials}</span>
         <span style={{ flex: 1, whiteSpace: 'nowrap' }}>Profile</span>
-      </button>
+      </Link>
     </nav>
   );
 }

@@ -1,1 +1,8 @@
 @import '../design_handoff_koodal/tokens.css';
+
+/* App-specific addition (not part of the Koodal token source above): a soft pulsing
+   glow used by the report-flow progress stepper to mark the current step. */
+@keyframes cp-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--cp-pulse) 45%, transparent); }
+  50%      { box-shadow: 0 0 0 6px color-mix(in oklch, var(--cp-pulse) 0%, transparent); }
+}

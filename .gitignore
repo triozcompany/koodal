@@ -1,5 +1,10 @@
 .env.local
 .env*.local
+# Ignore everything under secret/ except the committed placeholder template
+# (a directory-level "secret/" pattern would also hide the negated file below
+# from git, since git never descends into a fully-excluded directory).
+secret/*
+!secret/service-account.example.json
 node_modules/
 .next/
 .DS_Store
@@ -7,3 +12,5 @@ node_modules/
 tsconfig.tsbuildinfo
 CivicPulse MVP Design Plan.zip
 CivicPulse MVP Design Plan/
+Koodal MVP Design Plan.zip
+Koodal MVP Design Plan/

@@ -1,26 +1,21 @@
 'use client';
 import { useState } from 'react';
 import { CATS } from '@/lib/domain/constants';
+import type { FilterState } from '@/lib/domain/filters';
 
-export interface FilterState {
-  region: string;
-  cat: string[];
-  stage: string[];
-  sev: string[];
-}
-
-const STG_OPTS: [string, string, string][] = [
+export const STG_OPTS: [string, string, string][] = [
   ['new', 'New', 'var(--cp-ink-3)'], ['gathering', 'Gathering', 'var(--cp-marigold)'],
   ['govt', 'With govt', 'var(--cp-peacock-soft)'], ['case', 'Official case', 'var(--cp-peacock)'],
   ['progress', 'In progress', 'var(--cp-pulse)'], ['fixed', 'Fixed', 'var(--cp-leaf)'],
 ];
-const SEV_OPTS: [string, string][] = [['critical', 'Critical'], ['high', 'High'], ['medium', 'Medium'], ['low', 'Low']];
+export const SEV_OPTS: [string, string][] = [['critical', 'Critical'], ['high', 'High'], ['medium', 'Medium'], ['low', 'Low']];
 
 interface Props {
   f: FilterState;
   onChange: (f: FilterState) => void;
   onClose: () => void;
   desktop?: boolean;
+  trendingTags?: { t: string; n: number }[];
 }
 
 function chipOpt(on: boolean) {
@@ -35,18 +30,18 @@ function toggle(arr: string[], v: string) {
   return arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
 }
 
-export function FilterPanel({ f, onChange, onClose, desktop }: Props) {
-  const [draft, setDraft] = useState({ cat: [...f.cat], stage: [...f.stage], sev: [...f.sev] });
+export function FilterPanel({ f, onChange, onClose, desktop, trendingTags }: Props) {
+  const [draft, setDraft] = useState({ cat: [...f.cat], stage: [...f.stage], sev: [...f.sev], tag: f.tag });
 
-  const draftN = draft.cat.length + draft.stage.length + draft.sev.length;
+  const draftN = draft.cat.length + draft.stage.length + draft.sev.length + (draft.tag ? 1 : 0);
 
   function apply() {
-    onChange({ ...f, cat: draft.cat, stage: draft.stage, sev: draft.sev });
+    onChange({ ...f, cat: draft.cat, stage: draft.stage, sev: draft.sev, tag: draft.tag });
     onClose();
   }
 
   function clearAll() {
-    setDraft({ cat: [], stage: [], sev: [] });
+    setDraft({ cat: [], stage: [], sev: [], tag: null });
   }
 
   const filterContent = (
@@ -59,7 +54,7 @@ export function FilterPanel({ f, onChange, onClose, desktop }: Props) {
             const on = draft.cat.includes(k);
             const o = chipOpt(on);
             return (
-              <button key={k} onClick={() => setDraft(d => ({ ...d, cat: toggle(d.cat, k) }))} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, height: 96, padding: 14, borderRadius: 16, border: on ? '2px solid var(--cp-ink)' : '1px solid var(--cp-line)', background: o.bg, color: 'var(--cp-ink)', font: '600 13px/1.2 Outfit,sans-serif', cursor: 'pointer', textAlign: 'left', boxSizing: 'border-box' }}>
+              <button key={k} onClick={() => setDraft(d => ({ ...d, cat: toggle(d.cat, k) }))} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, height: 96, padding: 14, borderRadius: 16, border: on ? '2px solid var(--cp-ink)' : '1px solid var(--cp-line)', background: o.bg, color: o.fg, font: '600 13px/1.2 Outfit,sans-serif', cursor: 'pointer', textAlign: 'left', boxSizing: 'border-box' }}>
                 <i className={`ph-bold ${c.icon}`} style={{ fontSize: 28 }}></i>
                 {c.l}
               </button>
@@ -84,7 +79,7 @@ export function FilterPanel({ f, onChange, onClose, desktop }: Props) {
         </div>
       </div>
       {/* Severity */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '22px 0' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '22px 0', borderBottom: trendingTags ? '1px solid var(--cp-line)' : 'none' }}>
         <span style={{ font: '600 18px/1.2 Outfit,sans-serif' }}>Severity</span>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {SEV_OPTS.map(([k, l]) => {
@@ -94,6 +89,24 @@ export function FilterPanel({ f, onChange, onClose, desktop }: Props) {
           })}
         </div>
       </div>
+      {/* Trending tags — only when opened from Search */}
+      {trendingTags && trendingTags.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '22px 0' }}>
+          <span style={{ font: '600 18px/1.2 Outfit,sans-serif' }}>Trending tags</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {trendingTags.map(t => {
+              const on = draft.tag === t.t;
+              const o = chipOpt(on);
+              return (
+                <button key={t.t} onClick={() => setDraft(d => ({ ...d, tag: d.tag === t.t ? null : t.t }))} style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 13px', borderRadius: 999, border: `1px solid ${o.bd}`, background: o.bg, color: o.fg, font: '600 12px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <span style={{ color: on ? o.fg : 'var(--cp-peacock)' }}>#</span>{t.t}
+                  <span style={{ color: on ? o.fg : 'var(--cp-ink-3)' }}>{t.n}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 

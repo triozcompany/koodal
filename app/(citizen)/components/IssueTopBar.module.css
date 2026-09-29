@@ -1,0 +1,1 @@
+.btn:active { transform: translateY(2px) scale(.985); box-shadow: 0 0 0 transparent !important; transition: transform .12s; }

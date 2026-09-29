@@ -1,6 +1,21 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import type { Issue, IssueEvent, Evidence, Comment, Voice, MergedReport } from '../lib/domain/types';
+
+const SERVICE_ACCOUNT_PATH = join(process.cwd(), 'secret', 'trioz-319df-firebase-adminsdk-fbsvc-9ed783fdc2.json');
+
+function loadServiceAccount() {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  }
+  try {
+    return JSON.parse(readFileSync(SERVICE_ACCOUNT_PATH, 'utf8'));
+  } catch {
+    return undefined; // falls back to ADC (gcloud auth application-default login)
+  }
+}
 
 const H = 3600e3;
 const D = 24 * H;
@@ -153,16 +168,22 @@ const ROWS: Row[] = [
 
 async function main() {
   if (!getApps().length) {
-    const sa = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
-      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
-      : undefined;
-    if (!sa) { console.error('Set FIREBASE_SERVICE_ACCOUNT_JSON'); process.exit(1); }
-    initializeApp({ credential: cert(sa) });
+    const sa = loadServiceAccount();
+    initializeApp(sa ? { credential: cert(sa) } : { projectId: 'trioz-319df' });
   }
 
   const db = getFirestore();
   const now = Date.now();
   const issues = ROWS.map((r) => build(r, now));
+
+  console.log('Deleting existing issues...');
+  const existing = await db.collection('issues').listDocuments();
+  for (let i = 0; i < existing.length; i += 400) {
+    const batch = db.batch();
+    existing.slice(i, i + 400).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+  console.log(`  Deleted ${existing.length} existing issue(s).`);
 
   console.log(`Seeding ${issues.length} issues...`);
   const BATCH_SIZE = 5;

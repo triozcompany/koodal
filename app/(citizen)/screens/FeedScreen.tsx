@@ -2,16 +2,23 @@
 import type { Issue } from '@/lib/domain/types';
 import { CATS } from '@/lib/domain/constants';
 import { PILL, AVB } from '@/lib/domain/stage-style';
-import { ago } from '@/lib/domain/rules';
+import { ago, score, topTags } from '@/lib/domain/rules';
+import { ImageCarousel } from '../components/ImageCarousel';
 import styles from './FeedScreen.module.css';
 
 interface Props {
   issues: Issue[];
   supported: Record<string, boolean>;
+  opposed?: Record<string, boolean>;
   meInitials: string;
   meVerified: boolean;
+  mob?: boolean;
+  wide?: boolean;
   onOpen: (id: string) => void;
   onSupport: (id: string) => void;
+  onComments: (id: string) => void;
+  onOppose: (id: string) => void;
+  onProfile: () => void;
 }
 
 function nameHash(s: string): number {
@@ -30,14 +37,36 @@ function confColor(conf: number): string {
   return 'var(--cp-marigold)';
 }
 
-export function FeedScreen({ issues, supported, meInitials, meVerified, onOpen, onSupport }: Props) {
+export function FeedScreen({ issues, supported, opposed = {}, meInitials, meVerified, mob = false, wide = false, onOpen, onSupport, onComments, onOppose, onProfile }: Props) {
+  const showSidebar = !mob && wide;
+
+  const trending = issues
+    .filter(i => i.city === 'Chennai' && i.km < 6 && ['community', 'review'].includes(i.stage))
+    .sort((a, b) => score(b) - score(a))
+    .slice(0, 5);
+
+  const tags = topTags(issues, 10);
+
+  const feedList = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: mob ? 8 : 16 }}>
+      {issues.length === 0
+        ? <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--cp-ink-3)', font: '600 13px/1.4 Outfit,sans-serif' }}>No reports match these filters.</div>
+        : issues.map(issue => <FeedCard key={issue.id} issue={issue} supported={!!supported[issue.id]} opposed={!!opposed[issue.id]} mob={mob} onOpen={onOpen} onSupport={onSupport} onComments={onComments} onOppose={onOppose} />)
+      }
+    </div>
+  );
+
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', animation: 'cp-in .35s cubic-bezier(.2,.9,.25,1.1) both' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 10px', flexShrink: 0 }}>
-        <span style={{ flex: 1, font: "400 26px/1 'DM Serif Display',serif", letterSpacing: '-.03em' }}>Feed</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: mob ? '14px 16px 10px' : '24px 32px 6px', flexShrink: 0 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ font: "400 26px/1 'DM Serif Display',serif", letterSpacing: '-.03em' }}>Feed</div>
+          {!mob && <div style={{ font: '500 13px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-3)', marginTop: 6 }}>Latest and trending civic reports from around you.</div>}
+        </div>
         <button
+          onClick={onProfile}
           className={styles.avatarBtn}
           title="Profile"
           style={{ position: 'relative', width: 44, height: 44, flexShrink: 0, borderRadius: '50%', background: 'var(--cp-marigold)', color: 'var(--cp-on-marigold)', border: '1px solid var(--cp-line)', boxShadow: '0 2px 0 var(--cp-edge),0 8px 14px -10px rgb(0 0 0 / .25)', font: '600 14px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer' }}
@@ -51,36 +80,74 @@ export function FeedScreen({ issues, supported, meInitials, meVerified, onOpen, 
         </button>
       </div>
 
-      {/* Feed list */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 110px', background: 'var(--cp-bg)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {issues.length === 0
-            ? <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--cp-ink-3)', font: '600 13px/1.4 Outfit,sans-serif' }}>No reports match these filters.</div>
-            : issues.map(issue => <FeedCard key={issue.id} issue={issue} supported={!!supported[issue.id]} onOpen={onOpen} onSupport={onSupport} />)
-          }
+      {/* Body */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: mob ? '0 0 110px' : '18px 32px 64px', background: 'var(--cp-bg)' }}>
+        <div style={{ maxWidth: mob ? '100%' : 1240, margin: mob ? undefined : '0 auto', display: 'grid', gridTemplateColumns: showSidebar ? 'minmax(0,1fr) 300px' : 'minmax(0,1fr)', gap: 24, alignItems: 'start' }}>
+          <div style={{ minWidth: 0, maxWidth: showSidebar ? undefined : (mob ? undefined : 720) }}>{feedList}</div>
+
+          {showSidebar && (
+            <aside style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 0 }}>
+              <div style={{ border: '1px solid var(--cp-line)', borderRadius: 18, padding: 16, background: 'var(--cp-surface)' }}>
+                <span style={{ display: 'block', font: '600 11px/1 Outfit,sans-serif', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--cp-ink-3)', marginBottom: 14 }}>Trending near you</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {trending.length === 0 && <span style={{ font: '500 12.5px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>Nothing trending right now.</span>}
+                  {trending.map((i, k) => (
+                    <button
+                      key={i.id}
+                      onClick={() => onOpen(i.id)}
+                      style={{ display: 'flex', gap: 10, alignItems: 'flex-start', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, color: 'var(--cp-ink)' }}
+                    >
+                      <span style={{ font: "400 18px/1.1 'DM Serif Display',serif", color: 'var(--cp-ink-3)', flexShrink: 0, width: 18 }}>{k + 1}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                        <span style={{ font: '600 13px/1.3 Outfit,sans-serif' }}>{i.title}</span>
+                        <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{i.sup} citizens · {i.area}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ border: '1px solid var(--cp-line)', borderRadius: 18, padding: 16, background: 'var(--cp-surface)' }}>
+                <span style={{ display: 'block', font: '600 11px/1 Outfit,sans-serif', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--cp-ink-3)', marginBottom: 14 }}>Popular tags</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 12px' }}>
+                  {tags.map(({ t }) => (
+                    <span key={t} style={{ font: '600 12.5px/1 Outfit,sans-serif', color: 'var(--cp-peacock)', cursor: 'pointer' }}>#{t}</span>
+                  ))}
+                </div>
+              </div>
+            </aside>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function FeedCard({ issue, supported, onOpen, onSupport }: { issue: Issue; supported: boolean; onOpen: (id: string) => void; onSupport: (id: string) => void; }) {
+export function FeedCard({ issue, supported, opposed, mob, onOpen, onSupport, onComments, onOppose }: { issue: Issue; supported: boolean; opposed: boolean; mob: boolean; onOpen: (id: string) => void; onSupport: (id: string) => void; onComments: (id: string) => void; onOppose: (id: string) => void; }) {
   const [pc, pfg, pl] = PILL[issue.stage] ?? PILL.reported;
   const abg    = AVB[nameHash(issue.by) % AVB.length];
   const ai     = issue.anon ? '' : initials(issue.by);
   const place  = `${issue.area}${issue.street ? ', ' + issue.street : ''}`;
-  const photoN = Math.max(1, (issue.merged?.length ?? 0) + 1);
+  const photoN = Math.max(1, issue.evidence?.length ?? 1);
   const contribN = Math.max(1, (issue.merged?.length ?? 0) + 1);
   const preCase  = issue.stage === 'reported' || issue.stage === 'community';
   const isCase   = !!issue.caseId;
   const supBg    = supported ? 'var(--cp-pulse)' : 'var(--cp-surface)';
   const supFg    = supported ? '#fff' : 'var(--cp-ink)';
   const supIcon  = supported ? 'ph-fill ph-arrow-fat-up' : 'ph-bold ph-arrow-fat-up';
+  const oppBg    = opposed ? 'var(--cp-ink)' : 'var(--cp-surface)';
+  const oppFg    = opposed ? 'var(--cp-bg)' : 'var(--cp-ink)';
+  const oppIcon  = opposed ? 'ph-fill ph-thumbs-down' : 'ph-bold ph-thumbs-down';
+
+  // Desktop cards get a raised "physical" treatment; mobile stays flush.
+  const postR  = mob ? 0 : 22;
+  const postB  = mob ? 'none' : '2px solid var(--cp-edge)';
+  const postSh = mob ? 'none' : '0 4px 0 var(--cp-edge)';
 
   return (
     <article
       onClick={() => onOpen(issue.id)}
-      style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, background: 'var(--cp-surface)', borderRadius: 0, border: 'none', boxShadow: 'none', cursor: 'pointer', animation: 'cp-row .35s ease-out both' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, background: 'var(--cp-surface)', borderRadius: postR, border: postB, boxShadow: postSh, cursor: 'pointer', animation: 'cp-row .35s ease-out both' }}
     >
       {/* Author row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -116,15 +183,17 @@ function FeedCard({ issue, supported, onOpen, onSupport }: { issue: Issue; suppo
         )}
       </div>
 
-      {/* Photo placeholder */}
-      <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 16, overflow: 'hidden', background: 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)', border: '1px solid var(--cp-line)' }}>
-        <div style={{ position: 'absolute', left: 12, top: 12, width: 34, height: 34, borderRadius: 10, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center' }}>
-          <i className={`ph-bold ${CATS[issue.cat].icon}`} style={{ color: 'var(--cp-bg)', fontSize: 17 }} />
-        </div>
-        <span style={{ position: 'absolute', right: 10, bottom: 10, display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 9, background: 'var(--cp-surface)', font: '600 12px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}>
-          <i className="ph-bold ph-images" />
-          {photoN} · {contribN} people
-        </span>
+      {/* Photo carousel */}
+      <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--cp-line)' }}>
+        <ImageCarousel count={photoN}>
+          <div style={{ position: 'absolute', left: 12, top: 12, width: 34, height: 34, borderRadius: 10, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
+            <i className={`ph-bold ${CATS[issue.cat].icon}`} style={{ color: 'var(--cp-bg)', fontSize: 17 }} />
+          </div>
+          <span onClick={() => onOpen(issue.id)} style={{ position: 'absolute', right: 10, bottom: 10, display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 9, background: 'var(--cp-surface)', font: '600 12px/1 Outfit,sans-serif', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+            <i className="ph-bold ph-images" />
+            {photoN} · {contribN} people
+          </span>
+        </ImageCarousel>
       </div>
 
       {/* Tags */}
@@ -171,17 +240,17 @@ function FeedCard({ issue, supported, onOpen, onSupport }: { issue: Issue; suppo
         </button>
         {!issue.mine && (
           <button
-            onClick={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onOppose(issue.id); }}
             title="Not an issue"
             className={styles.opposeBtn}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, padding: '0 11px', borderRadius: 999, border: '1px solid var(--cp-line)', background: 'var(--cp-surface)', color: 'var(--cp-ink)', boxShadow: '0 2px 0 var(--cp-edge),0 8px 14px -10px rgb(0 0 0 / .25)', font: '700 12px/1 Outfit,sans-serif', cursor: 'pointer', flexShrink: 0 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, padding: '0 11px', borderRadius: 999, border: '1px solid var(--cp-line)', background: oppBg, color: oppFg, boxShadow: '0 2px 0 var(--cp-edge),0 8px 14px -10px rgb(0 0 0 / .25)', font: '700 12px/1 Outfit,sans-serif', cursor: 'pointer', flexShrink: 0, transition: 'background .15s,color .15s' }}
           >
-            <i className="ph-bold ph-thumbs-down" style={{ fontSize: 17 }} />
+            <i className={oppIcon} style={{ fontSize: 17 }} />
             {issue.opp}
           </button>
         )}
         <button
-          onClick={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onComments(issue.id); }}
           title="Comments"
           className={styles.commentBtn}
           style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, padding: '0 10px', border: 'none', borderRadius: 999, background: 'transparent', color: 'var(--cp-ink)', font: '600 12.5px/1 Outfit,sans-serif', cursor: 'pointer' }}

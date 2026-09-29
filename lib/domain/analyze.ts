@@ -48,6 +48,15 @@ function deptFor(cat: string): string {
   return CATS[cat as keyof typeof CATS]?.dept ?? '';
 }
 
+/** Shared distance/confidence formula for "is this the same real-world problem?" —
+ * used both by the report-time similarity check below and by the server-side
+ * case-merge dedup guard (server/actions/issue.ts), so both places agree on what
+ * counts as a match instead of re-deriving the same magic numbers twice. */
+export function matchScore(ax: number, ay: number, bx: number, by: number): { dist: number; score: number } {
+  const m = Math.hypot(ax - bx, ay - by) * 30;
+  return { dist: Math.round(m), score: Math.max(0, Math.round(98 - m / 20)) };
+}
+
 export function analyze(scene: SceneKey, issues: Issue[]): Analysis {
   const sc = SCENES[scene];
   const H = 3600e3;
@@ -55,10 +64,10 @@ export function analyze(scene: SceneKey, issues: Issue[]): Analysis {
   const matches: AnalysisMatch[] = issues
     .filter(i => i.city === 'Chennai' && i.cat === sc.cat && !['closed', 'rejected'].includes(i.stage) && i.km < 3)
     .map(i => {
-      const m = Math.hypot(i.x - sc.x, i.y - sc.y) * 30;
+      const { dist, score } = matchScore(i.x, i.y, sc.x, sc.y);
       return {
-        id: i.id, title: i.title, dist: Math.round(m),
-        score: Math.max(0, Math.round(98 - m / 20)),
+        id: i.id, title: i.title, dist,
+        score,
         sup: i.sup, by: i.by, h: Math.round((now - i.created) / H), stage: i.stage,
       };
     })

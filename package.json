@@ -5,18 +5,36 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "shot": "node scripts/shot.mjs",
+    "diff": "node scripts/diff.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@phosphor-icons/web": "2.1.1",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.5.0",
     "next": "^16.3.6",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "typescript": "^5"
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.2",
+    "jsdom": "^30.1.1",
+    "pixelmatch": "^7.2.0",
+    "playwright": "^1.63.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^5",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
   }
 }

@@ -1,5 +1,5 @@
-import CitizenApp from './CitizenApp';
+import { redirect } from 'next/navigation';
 
-export default function CitizenPage() {
-  return <CitizenApp />;
+export default function RootPage() {
+  redirect('/nearby');
 }

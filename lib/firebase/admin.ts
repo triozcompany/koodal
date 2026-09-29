@@ -1,13 +1,33 @@
 import { getApps, initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// Service account key lives outside git (see .gitignore) — checked in locally at secret/.
+// Resolved relative to this module file (not process.cwd()): Next.js dev's hot-module-reload
+// can re-execute this file's top-level code in a context where process.cwd() no longer
+// matches the project root, silently breaking the file read and falling back to a
+// credential-less init ("Unable to detect a Project Id").
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const SERVICE_ACCOUNT_PATH = join(__dirname, '..', '..', 'secret', 'trioz-319df-firebase-adminsdk-fbsvc-9ed783fdc2.json');
+
+function loadServiceAccount() {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  }
+  try {
+    return JSON.parse(readFileSync(SERVICE_ACCOUNT_PATH, 'utf8'));
+  } catch {
+    return undefined; // falls back to ADC (gcloud auth application-default login)
+  }
+}
 
 function getAdminApp() {
   if (getApps().length) return getApps()[0];
-  const sa = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
-    : undefined;
-  return initializeApp(sa ? { credential: cert(sa) } : undefined);
+  const sa = loadServiceAccount();
+  return initializeApp(sa ? { credential: cert(sa) } : { projectId: 'trioz-319df' });
 }
 
 const adminApp = getAdminApp();

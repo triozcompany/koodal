@@ -4,7 +4,8 @@ import type { Issue } from '@/lib/domain/types';
 import { CATS } from '@/lib/domain/constants';
 import { PILL, SEGC } from '@/lib/domain/stage-style';
 import { step, ago } from '@/lib/domain/rules';
-import type { FilterState } from '../components/FilterPanel';
+import type { FilterState } from '@/lib/domain/filters';
+import { PIN_PREVIEW_DARK } from '@/lib/domain/map-pin-theme';
 import styles from './HomeScreen.module.css';
 
 const PINC: Record<string, string> = {
@@ -19,8 +20,6 @@ const PINC: Record<string, string> = {
   rejected: 'var(--cp-surface-2)',
 };
 
-const CATS_ENTRIES = Object.entries(CATS);
-
 interface Props {
   issues: Issue[];
   f: FilterState;
@@ -31,7 +30,6 @@ interface Props {
   onClearFilters: () => void;
   supported: Record<string, boolean>;
   fCount: number;
-  onCatChip: (cat: string) => void;
   me: { name: string; verified: boolean };
   onOpenDrawer?: () => void;
   onMapMaximize?: (maximized: boolean) => void;
@@ -40,7 +38,7 @@ interface Props {
 
 export function HomeScreen({
   issues, f, onFilter, onLocation, onOpen, onSupport, onClearFilters,
-  supported, fCount, onCatChip, me, onOpenDrawer = () => {}, onMapMaximize, navHidden = false,
+  supported, fCount, me, onOpenDrawer = () => {}, onMapMaximize, navHidden = false,
 }: Props) {
   const [sheetTop, setSheetTop] = useState<number | null>(null);
   const [sheetDragging, setSheetDragging] = useState(false);
@@ -184,11 +182,6 @@ export function HomeScreen({
   const mSelIssue = mSelId ? issues.find(i => i.id === mSelId) ?? null : null;
   const hasMSel = sheetHidden && !!mSelIssue;
 
-  const chips = [
-    ['all', 'All', 'ph-squares-four'] as const,
-    ...CATS_ENTRIES.map(([k, c]) => [k, c.l, c.icon] as const),
-  ];
-
   return (
     <div style={{ position: 'absolute', inset: 0, animation: 'cp-in .38s cubic-bezier(.2,.9,.25,1.1) both' }}>
 
@@ -227,8 +220,9 @@ export function HomeScreen({
                 <div
                   key={issue.id}
                   onClick={() => {
-                    if (sheetHidden) setMSelId(issue.id);
-                    else onOpen(issue.id);
+                    setSheetHidden(true);
+                    setMSelId(issue.id);
+                    onMapMaximize?.(true);
                   }}
                   onPointerDown={e => e.stopPropagation()}
                   style={{ position: 'absolute', left: issue.x + '%', top: (issue.y * 0.62 + 10) + '%', transform: `translate(-50%,-100%) scale(${pinInv})`, transformOrigin: '50% 100%', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}
@@ -320,27 +314,29 @@ export function HomeScreen({
       {/* ── mSel CARD ── */}
       {hasMSel && mSelIssue && (() => {
         const it = cardData(mSelIssue);
+        const selOn = !!supported[mSelIssue.id];
+        const supBg = selOn ? 'var(--cp-pulse)' : PIN_PREVIEW_DARK.supportBtnBg;
         return (
-          <div style={{ position: 'absolute', left: 12, right: 12, bottom: navHidden ? 82 : 96, zIndex: 7, borderRadius: 20, background: 'var(--cp-surface)', boxShadow: '0 18px 40px -16px rgb(0 0 0 / .4),0 0 0 1px rgb(0 0 0 / .05)', overflow: 'hidden', animation: 'cp-sheet .35s cubic-bezier(.2,.9,.3,1.15) both' }}>
-            <div onClick={() => onOpen(mSelIssue.id)} style={{ position: 'relative', height: 140, background: 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)', display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
-              <i className={`ph-bold ${it.icon}`} style={{ fontSize: 40, color: 'var(--cp-ink-3)' }} />
+          <div data-cp-theme="dark" style={{ position: 'absolute', left: 12, right: 12, bottom: navHidden ? 82 : 96, zIndex: 7, borderRadius: 20, background: PIN_PREVIEW_DARK.cardBg, color: PIN_PREVIEW_DARK.cardText, border: PIN_PREVIEW_DARK.cardBorder, boxShadow: '0 18px 40px -16px rgb(0 0 0 / .4),0 0 0 1px rgb(0 0 0 / .05)', overflow: 'hidden', animation: 'cp-sheet .35s cubic-bezier(.2,.9,.3,1.15) both' }}>
+            <div onClick={() => onOpen(mSelIssue.id)} style={{ position: 'relative', height: 140, background: `repeating-linear-gradient(135deg,${PIN_PREVIEW_DARK.photoGradientA} 0 10px,${PIN_PREVIEW_DARK.photoGradientB} 10px 20px)`, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+              <i className={`ph-bold ${it.icon}`} style={{ fontSize: 40, color: PIN_PREVIEW_DARK.metaText }} />
               <button
                 onClick={e => { e.stopPropagation(); setMSelId(null); }}
-                style={{ position: 'absolute', right: 10, top: 10, width: 34, height: 34, borderRadius: '50%', border: 'none', background: 'var(--cp-surface)', color: 'var(--cp-ink)', boxShadow: '0 2px 8px rgb(0 0 0 / .18)', cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 15 }}
+                style={{ position: 'absolute', right: 10, top: 10, width: 34, height: 34, borderRadius: '50%', border: 'none', background: PIN_PREVIEW_DARK.closeBtnBg, color: PIN_PREVIEW_DARK.closeBtnFg, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 15 }}
               >
                 <i className="ph-bold ph-x" />
               </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px 14px' }}>
-              <span style={{ font: '500 11.5px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.meta}</span>
+              <span style={{ font: '500 11.5px/1.2 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.meta}</span>
               <span onClick={() => onOpen(mSelIssue.id)} style={{ font: '600 15px/1.25 Outfit,sans-serif', cursor: 'pointer' }}>{it.title}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: it.pc, color: it.pfg, font: '600 11px/1 Outfit,sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>{it.pl}</span>
-                <span style={{ flex: 1, font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-2)', whiteSpace: 'nowrap' }}>{it.n} citizens</span>
+                <span style={{ flex: 1, font: '600 12px/1 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap' }}>{it.n} citizens</span>
                 <button
                   onClick={e => { e.stopPropagation(); onSupport(mSelIssue.id); }}
                   className={styles.supportBtn}
-                  style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid var(--cp-line)', background: it.sb, color: it.sf, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 17, flexShrink: 0 }}
+                  style={{ width: 40, height: 40, borderRadius: '50%', border: PIN_PREVIEW_DARK.supportBtnBorder, background: supBg, color: PIN_PREVIEW_DARK.supportBtnFg, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 17, flexShrink: 0 }}
                 >
                   <i className={it.si} />
                 </button>
@@ -348,9 +344,9 @@ export function HomeScreen({
                   data-glare="1"
                   onClick={() => onOpen(mSelIssue.id)}
                   className={styles.raised}
-                  style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                  style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 'none', background: PIN_PREVIEW_DARK.openBtnBg, color: PIN_PREVIEW_DARK.openBtnFg, font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}
                 >
-                  Open
+                  Open<i className="ph-bold ph-arrow-right" />
                 </button>
               </div>
             </div>
@@ -385,23 +381,6 @@ export function HomeScreen({
             <span style={{ font: "400 23px/1 'DM Serif Display',serif", letterSpacing: '-.02em' }}>Nearby</span>
             <span style={{ font: '500 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{issues.length} issues around you</span>
           </div>
-        </div>
-
-        {/* category chips */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '8px 20px 12px', scrollbarWidth: 'none', flexShrink: 0 }}>
-          {chips.map(([k, label, icon]) => {
-            const on = k === 'all' ? !f.cat.length : (f.cat.length === 1 && f.cat[0] === k);
-            return (
-              <button
-                key={k}
-                onClick={() => onCatChip(k)}
-                style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 12px', borderRadius: 999, border: `1.5px solid ${on ? 'var(--cp-ink)' : 'var(--cp-line)'}`, background: on ? 'var(--cp-ink)' : 'var(--cp-surface)', color: on ? 'var(--cp-bg)' : 'var(--cp-ink)', font: '600 12px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .15s' }}
-              >
-                <i className={`ph-bold ${icon}`} />
-                {label}
-              </button>
-            );
-          })}
         </div>
 
         {/* issue list */}
