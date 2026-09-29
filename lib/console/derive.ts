@@ -2,26 +2,31 @@ import type { Issue } from '@/lib/domain/types';
 import { CATS, D, H } from '@/lib/domain/constants';
 import { GS, SEVL } from '@/lib/domain/stage-style';
 import { score, slaLeft, slaRisk } from '@/lib/domain/rules';
+import { getConfig } from './config';
 
-export const DECISION_SLA_H = 48; // handoff default; configurable 24/48/72h later
+/** Hours staff have to decide, from the moment support crosses the threshold (set in orgs/gcc). */
+export const decisionSlaH = () => getConfig().decisionSlaHours;
 
-// The design shows staff-facing department names, not the raw per-category ones.
-const DEPT_DISPLAY: Record<string, string> = {
-  'Roads & Bridges': 'Roads', 'Storm Water Drains': 'Water & Drainage', 'Water & Sewerage': 'Water & Drainage',
-  'Metrowater (CMWSSB)': 'Water & Drainage', 'Solid Waste Mgmt': 'Sanitation', Electrical: 'Streetlights', 'Parks & Trees': 'Parks & Trees',
-};
-export const deptName = (i: Issue) => DEPT_DISPLAY[i.dept] ?? i.dept;
+// Staff see their own department names; the citizen app writes a different name per category.
+export const deptName = (i: Issue) => getConfig().departments.find((d) => d.citizenDepts.includes(i.dept))?.name ?? i.dept;
 
 export type GovStage = 'pending' | 'assigned' | 'progress' | 'reopened' | 'fixed' | 'closed' | 'rejected';
 
-export const isCase = (i: Issue) => !['reported', 'community'].includes(i.stage);
+// The citizen app opens an official case (caseId) the moment support crosses the threshold and leaves
+// the stage at `community`; seeded data uses `review` for the same moment. Both mean "waiting for a decision".
+export const isPendingDecision = (i: Issue) => i.stage === 'review' || (i.stage === 'community' && !!i.caseId);
+export const isCase = (i: Issue) => !!i.caseId || !['reported', 'community'].includes(i.stage);
+/** A report that has not become a case yet: staff see it only as an anonymous signal. */
+export const isSignal = (i: Issue) => !isCase(i);
+/** Seeded design-mock issues have no reporting user; real citizen reports always carry a uid. */
+export const isDemo = (i: Issue) => i.demo ?? !i.uid;
 export const govStage = (i: Issue): GovStage =>
-  i.stage === 'review' ? 'pending' : i.stage === 'rejected' ? 'rejected' : i.stage === 'closed' ? 'closed' : i.stage === 'resolved' ? 'fixed'
+  isPendingDecision(i) ? 'pending' : i.stage === 'rejected' ? 'rejected' : i.stage === 'closed' ? 'closed' : i.stage === 'resolved' ? 'fixed'
     : i.reopened ? 'reopened' : i.stage === 'progress' ? 'progress' : 'assigned';
 export const isOverdue = (i: Issue) => !!i.due && i.due < Date.now() && ['verified', 'assigned', 'progress'].includes(i.stage);
 
 export const evTs = (i: Issue, re: RegExp) => { const e = i.events.filter((x) => re.test(x.title)); return e.length ? e[e.length - 1].ts : null; };
-export const crossedAt = (i: Issue) => evTs(i, /^Community verified/) ?? i.created;
+export const crossedAt = (i: Issue) => i.thresholdAt ?? evTs(i, /^Community verified/) ?? i.created;
 export const fixTs = (i: Issue) => evTs(i, /^Marked fixed/);
 
 export const dur = (ms: number) => { const h = ms / H; return h < 48 ? `${Math.round(h)}h` : `${(h / 24).toFixed(1).replace('.0', '')}d`; };
@@ -32,7 +37,7 @@ export interface CaseRow {
   id: string; ref: string; title: string; meta: string; icon: string; sup: number; conf: number; dept: string; assignee: string;
   sla: string; slaBg: string; slaFg: string; sevL: string; sevBg: string; sevFg: string;
   stageIcon: string; stageBg: string; stageFg: string; riskL: string;
-  stageLabel: string; stageShort: string; bar: string; ang: string; photoN: number; photoUrl?: string; confW: string; target: string;
+  demo: boolean; stageLabel: string; stageShort: string; bar: string; ang: string; photoN: number; photoUrl?: string; confW: string; target: string;
   segs: { c: string }[];
 }
 
@@ -44,7 +49,7 @@ export function caseRow(i: Issue): CaseRow {
   const g = govStage(i), G = GS[g], c = CATS[i.cat], sv = SEVL[i.sev], now = Date.now();
   let sla = '—', slaBg = 'var(--cp-surface-2)', slaFg = 'var(--cp-ink-2)';
   if (g === 'pending') {
-    const left = crossedAt(i) + DECISION_SLA_H * H - now;
+    const left = crossedAt(i) + decisionSlaH() * H - now;
     sla = left < 0 ? `Decision late ${dur(-left)}` : `Decide in ${dur(left)}`;
     if (left < 0) { slaBg = 'var(--cp-pulse)'; slaFg = '#fff'; } else if (left < 12 * H) slaBg = 'var(--cp-marigold-soft)';
   } else if (['assigned', 'progress', 'reopened'].includes(g)) {
@@ -56,7 +61,7 @@ export function caseRow(i: Issue): CaseRow {
     id: i.id, ref: i.caseId || i.id, title: i.title, meta: `${i.area} · ${c.l}`, icon: c.icon, sup: i.sup, conf: i.conf, dept: deptName(i),
     assignee: i.caseId ? (i.team || i.assignee || '—') : 'Not assigned', sla, slaBg, slaFg,
     sevL: sv[2], sevBg: sv[0], sevFg: sv[1], stageIcon: G[3], stageBg: G[1], stageFg: G[2], riskL: g === 'reopened' ? 'Reopened' : sla,
-    stageLabel: G[0], stageShort: SHORT[g],
+    demo: isDemo(i), stageLabel: G[0], stageShort: SHORT[g],
     bar: isOverdue(i) || g === 'reopened' ? 'var(--cp-pulse)' : g === 'pending' ? 'var(--cp-marigold)' : 'transparent',
     ang: `${135 + (i.id.split('').reduce((a, ch) => a + ch.charCodeAt(0), 0) % 4) * 20}deg`,
     photoN: i.evidence.length, photoUrl: i.evidence.find((e) => e.url)?.url, confW: `${i.conf}%`,
@@ -91,7 +96,7 @@ export function homeData(issues: Issue[]) {
     a.sup += i.sup; a.xs += i.x; a.ys += i.y; a.cats[i.cat] = (a.cats[i.cat] || 0) + 1;
   });
   const emerging: Record<string, number> = {};
-  issues.filter((i) => ['reported', 'community'].includes(i.stage)).forEach((i) => { emerging[i.area] = (emerging[i.area] || 0) + 1; });
+  issues.filter(isSignal).forEach((i) => { emerging[i.area] = (emerging[i.area] || 0) + 1; });
   const hot = Object.values(areas).filter((a) => a.open > 0).map((a) => {
     const tc = Object.entries(a.cats).sort((x, y) => y[1] - x[1])[0][0] as keyof typeof CATS;
     return { ...a, x: a.xs / a.n, y: a.ys / a.n, top: CATS[tc].l, score: a.open * 10 + a.sup / 4 + (emerging[a.area] || 0) * 3 };
@@ -109,25 +114,16 @@ export const statusMatches = (i: Issue, k: string) => (k === 'overdue' ? isOverd
 export const SORT_FN: Record<string, (a: Issue, b: Issue) => number> = {
   score: byScore,
   newest: (a, b) => crossedAt(b) - crossedAt(a),
-  sla: (a, b) => (a.due || crossedAt(a) + DECISION_SLA_H * H) - (b.due || crossedAt(b) + DECISION_SLA_H * H),
+  sla: (a, b) => (a.due || crossedAt(a) + decisionSlaH() * H) - (b.due || crossedAt(b) + decisionSlaH() * H),
   support: (a, b) => b.sup - a.sup,
 };
 
-// Staff-facing departments and their default teams (from the design's GOVD list).
-export const GOV_DEPTS: { dept: string; team: string; icon: string }[] = [
-  { dept: 'Roads', team: 'Roads Team', icon: 'ph-road-horizon' },
-  { dept: 'Water & Drainage', team: 'Water & Drainage Team', icon: 'ph-drop' },
-  { dept: 'Sanitation', team: 'Sanitation Team', icon: 'ph-trash' },
-  { dept: 'Streetlights', team: 'Streetlights Team', icon: 'ph-lightbulb' },
-  { dept: 'Parks & Trees', team: 'Parks & Trees Team', icon: 'ph-tree' },
-];
-export const REJECT_REASONS: [string, string][] = [
-  ['Duplicate of an existing case', 'ph-copy'], ['Outside our jurisdiction', 'ph-map-trifold'], ['On private property', 'ph-house-line'],
-  ['Already resolved on inspection', 'ph-check-square'], ['Not a civic issue', 'ph-prohibit'], ['Evidence does not match site', 'ph-image-broken'],
-];
+// Departments, teams and reject reasons come from the org config.
+export const govDepts = () => getConfig().departments.map((d) => ({ dept: d.name, team: d.teams[0], teams: d.teams, icon: d.icon }));
+export const rejectReasons = () => getConfig().rejectReasons;
 export const fdate = (ts: number) => new Date(ts).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 export const fdatetime = (ts: number) => new Date(ts).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-export const decisionDeadline = (i: Issue) => crossedAt(i) + DECISION_SLA_H * H;
+export const decisionDeadline = (i: Issue) => crossedAt(i) + decisionSlaH() * H;
 
 export const PIN_COLOR: Record<GovStage, string> = {
   pending: 'var(--cp-marigold)', assigned: 'var(--cp-peacock)', progress: 'var(--cp-pulse)', reopened: 'var(--cp-pulse-deep)',
