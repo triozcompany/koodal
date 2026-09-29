@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Issue } from '@/lib/domain/types';
-import { CATS } from '@/lib/domain/constants';
+import { CATS, issueIcon } from '@/lib/domain/constants';
 import { SEGC, TRACK } from '@/lib/domain/stage-style';
 import { step, caseBadge, dedupeCases, slaRisk } from '@/lib/domain/rules';
 import { matchesFilter } from '@/lib/domain/filters';
@@ -55,7 +55,7 @@ function StepTrack({ issue }: { issue: Issue }) {
 }
 
 export function CaseRow({ issue, mob, onOpen, needsYou, onConfirmFix }: { issue: Issue; mob: boolean; onOpen: (caseId: string) => void; needsYou?: boolean; onConfirmFix?: (id: string) => void }) {
-  const icon = CATS[issue.cat]?.icon;
+  const icon = issueIcon(issue);
   const photoN = Math.max(1, (issue.merged?.length ?? 0) + 1);
   const area = `${issue.area}, ${issue.city}`;
   const badge = caseBadge(issue);
@@ -195,7 +195,7 @@ export function CasesScreen({ issues, supported, meInitials, meVerified, onOpen,
 
           {/* Tabs */}
           <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, background: 'var(--cp-surface-2)' }}>
-            {([['following', 'Following', following.length], ['all', 'All in Chennai', allCases.length]] as const).map(([k, l, n]) => {
+            {([['following', 'Following', following.length], ['all', 'All', allCases.length]] as const).map(([k, l, n]) => {
               const on = tab === k;
               return (
                 <button key={k} onClick={() => setTab(k)} style={{ flex: 1, minWidth: 0, height: 36, padding: '0 10px', borderRadius: 999, border: 'none', background: on ? 'var(--cp-surface)' : 'transparent', color: on ? 'var(--cp-ink)' : 'var(--cp-ink-2)', font: '600 12.5px/1 Outfit,sans-serif', cursor: 'pointer', boxShadow: on ? '0 2px 6px -2px rgb(0 0 0 / .2)' : 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, overflow: 'hidden' }}>

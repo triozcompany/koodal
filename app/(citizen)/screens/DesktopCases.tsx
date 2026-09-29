@@ -73,7 +73,7 @@ export function DesktopCases({ issues, supported, onOpen, onFilter, onConfirmFix
           <span style={{ font: '500 13px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>Official cases opened after community support crossed 80%.</span>
         </div>
         <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, background: 'var(--cp-surface-2)' }}>
-          {([['following', 'Following', following.length], ['all', 'All in Chennai', allCases.length]] as const).map(([k, l, n]) => {
+          {([['following', 'Following', following.length], ['all', 'All', allCases.length]] as const).map(([k, l, n]) => {
             const on = tab === k;
             return (
               <button key={k} onClick={() => setTab(k)} style={{ height: 38, padding: '0 14px', borderRadius: 999, border: 'none', background: on ? 'var(--cp-surface)' : 'transparent', color: on ? 'var(--cp-ink)' : 'var(--cp-ink-2)', font: '600 12.5px/1 Outfit,sans-serif', cursor: 'pointer', boxShadow: on ? '0 2px 6px -2px rgb(0 0 0 / .2)' : 'none', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
