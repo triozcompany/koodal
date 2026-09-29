@@ -1,24 +1,15 @@
 'use client';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { Issue } from '@/lib/domain/types';
-import { CATS } from '@/lib/domain/constants';
+import { issueIcon } from '@/lib/domain/constants';
 import { PILL, SEGC } from '@/lib/domain/stage-style';
 import { step, ago } from '@/lib/domain/rules';
 import type { FilterState } from '@/lib/domain/filters';
 import { PIN_PREVIEW_DARK } from '@/lib/domain/map-pin-theme';
+import { useApp } from '@/lib/app-context';
+import { searchIssues } from './SearchScreen';
+import { NearbyMap } from '../components/NearbyMap';
 import styles from './HomeScreen.module.css';
-
-const PINC: Record<string, string> = {
-  reported: 'var(--cp-ink-3)',
-  community: 'var(--cp-marigold)',
-  review: 'var(--cp-peacock)',
-  verified: 'var(--cp-peacock)',
-  assigned: 'var(--cp-peacock)',
-  progress: 'var(--cp-pulse)',
-  resolved: 'var(--cp-leaf)',
-  closed: 'var(--cp-leaf)',
-  rejected: 'var(--cp-surface-2)',
-};
 
 interface Props {
   issues: Issue[];
@@ -40,23 +31,56 @@ export function HomeScreen({
   issues, f, onFilter, onLocation, onOpen, onSupport, onClearFilters,
   supported, fCount, me, onOpenDrawer = () => {}, onMapMaximize, navHidden = false,
 }: Props) {
-  const [sheetTop, setSheetTop] = useState<number | null>(null);
+  const {
+    nearbySelectedId, setNearbySelectedId,
+    nearbySheetHidden, setNearbySheetHidden,
+    nearbySheetTop, setNearbySheetTop,
+    nearbyListScroll, setNearbyListScroll,
+    nearbyMapCamera, setNearbyMapCamera,
+  } = useApp();
+
+  // Seeded once from the persisted context values (survives navigating away
+  // to /issues/[id] and back) — kept as local state after that so the drag/
+  // scroll gestures below stay fast and don't write to shared context on
+  // every frame. See the unmount-sync effect further down.
+  const [sheetTop, setSheetTop] = useState<number | null>(nearbySheetTop);
   const [sheetDragging, setSheetDragging] = useState(false);
-  const [sheetHidden, setSheetHidden] = useState(false);
-  const [panX, setPanX] = useState(0);
-  const [panY, setPanY] = useState(0);
-  const [zoom, setZoom] = useState(1);
-  const [mapDragging, setMapDragging] = useState(false);
-  const [mSelId, setMSelId] = useState<string | null>(null);
+  const [sheetHidden, setSheetHidden] = useState(nearbySheetHidden);
+  const [mSelId, setMSelId] = useState<string | null>(nearbySelectedId);
 
   const winH = useRef(0);
   const sheetDragRef = useRef({ y: 0, top: 0 });
-  const mapDragRef = useRef({ cx: 0, cy: 0, px: 0, py: 0 });
-  const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null);
+  const restoredScrollRef = useRef(false);
 
   useEffect(() => {
     winH.current = window.innerHeight;
-    setSheetTop(Math.round(window.innerHeight * 0.3));
+    setSheetTop(prev => prev ?? Math.round(window.innerHeight * 0.3));
+  }, []);
+
+  // Restore the list's scroll position once real issues have arrived —
+  // setting scrollTop on an empty list is a no-op, so this retries via the
+  // issues.length dependency instead of firing once unconditionally.
+  useEffect(() => {
+    if (restoredScrollRef.current || !listScrollRef.current || issues.length === 0) return;
+    restoredScrollRef.current = true;
+    listScrollRef.current.scrollTop = nearbyListScroll;
+  }, [issues.length, nearbyListScroll]);
+
+  // Mirror the current local state into the persisted context exactly once,
+  // when this screen unmounts (i.e. navigating to an issue) — not on every
+  // drag/scroll event, which would otherwise re-render every context consumer.
+  const sheetHiddenRef = useRef(sheetHidden); sheetHiddenRef.current = sheetHidden;
+  const sheetTopRef = useRef(sheetTop); sheetTopRef.current = sheetTop;
+  const mSelIdRef = useRef(mSelId); mSelIdRef.current = mSelId;
+  useEffect(() => {
+    return () => {
+      setNearbySheetHidden(sheetHiddenRef.current);
+      setNearbySheetTop(sheetTopRef.current);
+      setNearbySelectedId(mSelIdRef.current);
+      if (listScrollRef.current) setNearbyListScroll(listScrollRef.current.scrollTop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sheet drag
@@ -105,35 +129,10 @@ export function HomeScreen({
     }
   }, [sheetTop]);
 
-  // Map drag
-  const mapDown = useCallback((e: React.PointerEvent) => {
-    mapDragRef.current = { cx: e.clientX, cy: e.clientY, px: panX, py: panY };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, [panX, panY]);
-
-  const mapMove = useCallback((e: React.PointerEvent) => {
-    if (!(e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) return;
-    setMapDragging(true);
-    const L = 500 * zoom;
-    const nx = mapDragRef.current.px + (e.clientX - mapDragRef.current.cx);
-    const ny = mapDragRef.current.py + (e.clientY - mapDragRef.current.cy);
-    setPanX(Math.max(-L, Math.min(L, nx)));
-    setPanY(Math.max(-L, Math.min(L, ny)));
-  }, [zoom]);
-
-  const mapUp = useCallback(() => setMapDragging(false), []);
-
-  const mapWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    setZoom(z => Math.max(0.7, Math.min(3, z * (1 - e.deltaY * 0.0015))));
-    setMapDragging(true);
-    if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
-    mapTimeoutRef.current = setTimeout(() => setMapDragging(false), 120);
+  const selectPin = useCallback((id: string) => {
+    setSheetHidden(true);
+    setMSelId(id);
   }, []);
-
-  const zoomIn = () => setZoom(z => Math.min(3, z * 1.3));
-  const zoomOut = () => setZoom(z => Math.max(0.7, z / 1.3));
-  const recenter = () => { setZoom(1); setPanX(0); setPanY(0); };
 
   const toggleMapFull = () => {
     if (sheetHidden) {
@@ -145,16 +144,22 @@ export function HomeScreen({
     }
   };
 
+  // Search — debounced so typing doesn't re-filter the list (and rebuild
+  // every map marker) on each keystroke.
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+  const displayIssues = debouncedQuery.trim() ? searchIssues(issues, debouncedQuery) : issues;
+
   // Computed
   const h = winH.current || 844;
   const sheetTopPx = sheetHidden ? (h + 40) + 'px' : (sheetTop ?? Math.round(h * 0.3)) + 'px';
   const sheetTrans = sheetDragging ? 'none' : 'top .45s cubic-bezier(.2,.9,.3,1.1)';
-  const mapTr = mapDragging ? 'none' : 'transform .35s cubic-bezier(.2,.9,.3,1)';
-  const mapCur = mapDragging ? 'grabbing' : 'grab';
-  const pinInv = (1 / (zoom || 1)).toFixed(3);
   const regionName = f.region === 'near' ? 'Velachery' : f.region;
   const meI = me.name.split(' ').filter(Boolean).map(s => s[0]).join('').slice(0, 2).toUpperCase();
-  const showMe = f.region === 'near';
 
   function cardData(issue: Issue) {
     const st = step(issue.stage);
@@ -164,7 +169,7 @@ export function HomeScreen({
       ? (issue.km < 1 ? Math.round(issue.km * 1000) + ' m' : issue.km + ' km')
       : issue.city;
     return {
-      icon: CATS[issue.cat].icon,
+      icon: issueIcon(issue),
       meta: `${issue.area} · ${dist} · ${ago(issue.created)}`,
       title: issue.title,
       pc, pfg, pl,
@@ -186,96 +191,17 @@ export function HomeScreen({
     <div style={{ position: 'absolute', inset: 0, animation: 'cp-in .38s cubic-bezier(.2,.9,.25,1.1) both' }}>
 
       {/* ── MAP LAYER ── */}
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '100%', overflow: 'hidden', background: 'var(--cp-map)' }}>
-        <div
-          onPointerDown={mapDown}
-          onPointerMove={mapMove}
-          onPointerUp={mapUp}
-          onWheel={mapWheel}
-          style={{ position: 'absolute', inset: 0, touchAction: 'none', cursor: mapCur }}
-        >
-          <div style={{ position: 'absolute', inset: 0, transform: `translate(${panX}px,${panY}px) scale(${zoom})`, transformOrigin: '50% 50%', transition: mapTr }}>
-            {/* grid */}
-            <div style={{ position: 'absolute', inset: '-30%', transform: 'rotate(-9deg)', backgroundImage: 'linear-gradient(var(--cp-map-line) 2px,transparent 2px),linear-gradient(90deg,var(--cp-map-line) 2px,transparent 2px)', backgroundSize: '50px 50px' }} />
-            {/* park */}
-            <div style={{ position: 'absolute', left: '8%', top: '12%', width: '18%', height: '14%', borderRadius: 20, background: 'var(--cp-map-park)', transform: 'rotate(-9deg)' }} />
-            {/* water */}
-            <div style={{ position: 'absolute', right: '-8%', top: '56%', width: '34%', height: '30%', borderRadius: '50%', background: 'var(--cp-map-water)' }} />
-            {/* roads */}
-            <div style={{ position: 'absolute', left: '-10%', top: '50%', width: '120%', height: 16, background: 'var(--cp-map-road)', transform: 'rotate(-9deg)', boxShadow: '0 0 0 1px var(--cp-map-line)' }} />
-            <div style={{ position: 'absolute', left: '53%', top: '-10%', width: 14, height: '120%', background: 'var(--cp-map-road)', transform: 'rotate(-9deg)', boxShadow: '0 0 0 1px var(--cp-map-line)' }} />
-            <div style={{ position: 'absolute', left: '-20%', top: '30%', width: '140%', height: 12, background: 'var(--cp-map-road)', transform: 'rotate(18deg)', boxShadow: '0 0 0 1px var(--cp-map-line)' }} />
-            {/* me dot */}
-            {showMe && (
-              <div style={{ position: 'absolute', left: '48%', top: '44%', width: 16, height: 16, marginTop: -8, marginLeft: -8, borderRadius: '50%', background: 'var(--cp-ink)', border: '3px solid var(--cp-surface)', boxShadow: '0 0 0 8px color-mix(in oklch,var(--cp-ink) 12%,transparent)' }} />
-            )}
-            {/* pins */}
-            {issues.map(issue => {
-              const c = PINC[issue.stage] ?? 'var(--cp-ink-3)';
-              const hot = issue.stage === 'review' || (issue.stage === 'community' && issue.conf >= 70);
-              const selAndHidden = mSelId === issue.id && sheetHidden;
-              const pb = selAndHidden ? 'var(--cp-ink)' : 'var(--cp-surface)';
-              const pf = selAndHidden ? 'var(--cp-bg)' : 'var(--cp-ink)';
-              return (
-                <div
-                  key={issue.id}
-                  onClick={() => {
-                    setSheetHidden(true);
-                    setMSelId(issue.id);
-                    onMapMaximize?.(true);
-                  }}
-                  onPointerDown={e => e.stopPropagation()}
-                  style={{ position: 'absolute', left: issue.x + '%', top: (issue.y * 0.62 + 10) + '%', transform: `translate(-50%,-100%) scale(${pinInv})`, transformOrigin: '50% 100%', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1 }}
-                >
-                  {hot && (
-                    <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 30, borderRadius: 999, background: c, animation: 'cp-ping 1.9s ease-out infinite' }} />
-                  )}
-                  <div
-                    className={styles.pin}
-                    style={{
-                      '--pin-sc': selAndHidden ? '1.12' : '1',
-                      position: 'relative', display: 'flex', alignItems: 'center', gap: 6,
-                      height: 30, padding: '0 11px 0 9px', borderRadius: 999,
-                      background: pb, color: pf,
-                      boxShadow: '0 2px 10px rgb(0 0 0 / .16),0 0 0 1px rgb(0 0 0 / .06)',
-                      font: '700 12px/1 Outfit,sans-serif', whiteSpace: 'nowrap', boxSizing: 'border-box',
-                    } as React.CSSProperties}
-                  >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: c, boxShadow: '0 0 0 2px var(--cp-surface)', flexShrink: 0 }} />
-                    <i className={`ph-bold ${CATS[issue.cat].icon}`} style={{ fontSize: 14 }} />
-                    {issue.sup}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* map controls */}
-        <div style={{ position: 'absolute', right: 16, top: 70, display: 'flex', flexDirection: 'column', gap: 6, zIndex: 4 }}>
-          <button
-            onClick={toggleMapFull}
-            className={styles.mapBtn}
-            style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--cp-line)', background: 'var(--cp-surface)', color: 'var(--cp-ink)', boxShadow: '0 4px 14px -6px rgb(0 0 0 / .2)', cursor: 'pointer', fontSize: 17, marginBottom: 6 }}
-          >
-            <i className={`ph-bold ${sheetHidden ? 'ph-arrows-in-simple' : 'ph-arrows-out-simple'}`} />
-          </button>
-          <div style={{ display: 'flex', flexDirection: 'column', borderRadius: 14, background: 'var(--cp-surface)', border: '1px solid var(--cp-line)', boxShadow: '0 4px 14px -6px rgb(0 0 0 / .2)', overflow: 'hidden' }}>
-            <button onClick={zoomIn} style={{ width: 42, height: 42, border: 'none', borderBottom: '1px solid var(--cp-line)', background: 'none', color: 'var(--cp-ink)', cursor: 'pointer', fontSize: 17 }}>
-              <i className="ph-bold ph-plus" />
-            </button>
-            <button onClick={zoomOut} style={{ width: 42, height: 42, border: 'none', background: 'none', color: 'var(--cp-ink)', cursor: 'pointer', fontSize: 17 }}>
-              <i className="ph-bold ph-minus" />
-            </button>
-          </div>
-          <button
-            onClick={recenter}
-            style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--cp-line)', background: 'linear-gradient(180deg,var(--cp-surface),var(--cp-surface-2))', color: 'var(--cp-pulse)', boxShadow: '0 4px 14px -6px rgb(0 0 0 / .2)', cursor: 'pointer', fontSize: 18 }}
-          >
-            <i className="ph-fill ph-navigation-arrow" />
-          </button>
-        </div>
-      </div>
+      <NearbyMap
+        issues={displayIssues}
+        selectedId={sheetHidden ? mSelId : null}
+        focusId={sheetHidden ? mSelId : null}
+        onPinClick={selectPin}
+        maximized={sheetHidden}
+        onToggleMaximize={toggleMapFull}
+        mob
+        initialCamera={nearbyMapCamera}
+        onCameraChange={setNearbyMapCamera}
+      />
 
       {/* ── TOP BAR — always visible, including when map is maximized ── */}
       <div style={{ position: 'absolute', top: 14, left: 16, right: 16, display: 'flex', gap: 8, alignItems: 'center', zIndex: 6 }}>
@@ -311,15 +237,32 @@ export function HomeScreen({
         </button>
       </div>
 
-      {/* ── mSel CARD ── */}
+      {/* ── mSel CARD (+ Show list button stacked above it, so it never
+          overlaps the card regardless of the card's actual rendered
+          height — a flex column stack, not a hardcoded pixel offset) ── */}
       {hasMSel && mSelIssue && (() => {
         const it = cardData(mSelIssue);
         const selOn = !!supported[mSelIssue.id];
         const supBg = selOn ? 'var(--cp-pulse)' : PIN_PREVIEW_DARK.supportBtnBg;
+        const photoUrl = mSelIssue.evidence?.find(e => e.url)?.url;
         return (
-          <div data-cp-theme="dark" style={{ position: 'absolute', left: 12, right: 12, bottom: navHidden ? 82 : 96, zIndex: 7, borderRadius: 20, background: PIN_PREVIEW_DARK.cardBg, color: PIN_PREVIEW_DARK.cardText, border: PIN_PREVIEW_DARK.cardBorder, boxShadow: '0 18px 40px -16px rgb(0 0 0 / .4),0 0 0 1px rgb(0 0 0 / .05)', overflow: 'hidden', animation: 'cp-sheet .35s cubic-bezier(.2,.9,.3,1.15) both' }}>
-            <div onClick={() => onOpen(mSelIssue.id)} style={{ position: 'relative', height: 140, background: `repeating-linear-gradient(135deg,${PIN_PREVIEW_DARK.photoGradientA} 0 10px,${PIN_PREVIEW_DARK.photoGradientB} 10px 20px)`, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
-              <i className={`ph-bold ${it.icon}`} style={{ fontSize: 40, color: PIN_PREVIEW_DARK.metaText }} />
+          <div style={{ position: 'absolute', left: 12, right: 12, bottom: navHidden ? 82 : 96, zIndex: 7, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+            <button
+              data-glare="1"
+              onClick={() => { setSheetHidden(false); setSheetTop(null); setMSelId(null); }}
+              className={styles.raised}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, height: 46, padding: '0 18px', borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 10px 24px -10px rgb(0 0 0 / .45)', animation: 'cp-pop2 .25s both' }}
+            >
+              <i className="ph-bold ph-list-bullets" />
+              Show list · {displayIssues.length}
+            </button>
+            <div data-cp-theme="dark" style={{ width: '100%', borderRadius: 20, background: PIN_PREVIEW_DARK.cardBg, color: PIN_PREVIEW_DARK.cardText, border: PIN_PREVIEW_DARK.cardBorder, boxShadow: '0 18px 40px -16px rgb(0 0 0 / .4),0 0 0 1px rgb(0 0 0 / .05)', overflow: 'hidden', animation: 'cp-sheet .35s cubic-bezier(.2,.9,.3,1.15) both' }}>
+            <div style={{ position: 'relative', height: 140, background: photoUrl ? undefined : `repeating-linear-gradient(135deg,${PIN_PREVIEW_DARK.photoGradientA} 0 10px,${PIN_PREVIEW_DARK.photoGradientB} 10px 20px)`, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+              {photoUrl ? (
+                <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <i className={`ph-bold ${it.icon}`} style={{ fontSize: 40, color: PIN_PREVIEW_DARK.metaText }} />
+              )}
               <button
                 onClick={e => { e.stopPropagation(); setMSelId(null); }}
                 style={{ position: 'absolute', right: 10, top: 10, width: 34, height: 34, borderRadius: '50%', border: 'none', background: PIN_PREVIEW_DARK.closeBtnBg, color: PIN_PREVIEW_DARK.closeBtnFg, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 15 }}
@@ -329,7 +272,7 @@ export function HomeScreen({
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px 14px' }}>
               <span style={{ font: '500 11.5px/1.2 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.meta}</span>
-              <span onClick={() => onOpen(mSelIssue.id)} style={{ font: '600 15px/1.25 Outfit,sans-serif', cursor: 'pointer' }}>{it.title}</span>
+              <span style={{ font: '600 15px/1.25 Outfit,sans-serif' }}>{it.title}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: it.pc, color: it.pfg, font: '600 11px/1 Outfit,sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>{it.pl}</span>
                 <span style={{ flex: 1, font: '600 12px/1 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap' }}>{it.n} citizens</span>
@@ -351,11 +294,14 @@ export function HomeScreen({
               </div>
             </div>
           </div>
+          </div>
         );
       })()}
 
-      {/* ── SHOW LIST BUTTON ── */}
-      {sheetHidden && (
+      {/* ── SHOW LIST BUTTON — only stands alone here when the map is
+          maximized without a preview open; otherwise it's stacked above
+          the mSel card above ── */}
+      {sheetHidden && !hasMSel && (
         <button
           data-glare="1"
           onClick={() => { setSheetHidden(false); setSheetTop(null); setMSelId(null); }}
@@ -363,7 +309,7 @@ export function HomeScreen({
           style={{ position: 'absolute', right: 16, bottom: navHidden ? 24 : 104, zIndex: 6, display: 'flex', alignItems: 'center', gap: 8, height: 46, padding: '0 18px', borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 10px 24px -10px rgb(0 0 0 / .45)', animation: 'cp-pop2 .25s both' }}
         >
           <i className="ph-bold ph-list-bullets" />
-          Show list · {issues.length}
+          Show list · {displayIssues.length}
         </button>
       )}
 
@@ -379,28 +325,51 @@ export function HomeScreen({
           <div style={{ width: 40, height: 5, borderRadius: 3, background: 'var(--cp-line)', margin: '0 auto 12px' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ font: "400 23px/1 'DM Serif Display',serif", letterSpacing: '-.02em' }}>Nearby</span>
-            <span style={{ font: '500 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{issues.length} issues around you</span>
+            <span style={{ font: '500 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{displayIssues.length} issues around you</span>
+          </div>
+        </div>
+
+        {/* search */}
+        <div style={{ padding: '0 20px 10px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, height: 42, padding: '0 14px', borderRadius: 999, border: '1px solid var(--cp-line)', background: 'var(--cp-surface-2)' }}>
+            <i className="ph-bold ph-magnifying-glass" style={{ fontSize: 15, color: 'var(--cp-ink-3)' }} />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search issues"
+              style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', color: 'var(--cp-ink)', font: '500 13.5px/1 Outfit,sans-serif' }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} style={{ border: 'none', background: 'none', color: 'var(--cp-ink-3)', cursor: 'pointer', fontSize: 14, display: 'grid', placeItems: 'center' }}>
+                <i className="ph-bold ph-x" />
+              </button>
+            )}
           </div>
         </div>
 
         {/* issue list */}
         <div
+          ref={listScrollRef}
           onScroll={sheetScroll}
           onWheel={sheetWheel}
           style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: navHidden ? 24 : 110, borderTop: '1px solid var(--cp-line)' }}
         >
-          {issues.length === 0 ? (
+          {displayIssues.length === 0 ? (
             <div style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, color: 'var(--cp-ink-3)', textAlign: 'center' }}>
               <i className="ph-bold ph-funnel-x" style={{ fontSize: 30 }} />
-              <span style={{ font: '600 13px/1.3 Outfit,sans-serif' }}>Nothing matches these filters</span>
-              <button onClick={onClearFilters} style={{ border: 'none', background: 'none', color: 'var(--cp-pulse)', font: '600 12px/1 Outfit,sans-serif', cursor: 'pointer' }}>Clear filters</button>
+              <span style={{ font: '600 13px/1.3 Outfit,sans-serif' }}>{searchQuery.trim() ? 'No issues match your search' : 'Nothing matches these filters'}</span>
+              {searchQuery.trim() ? (
+                <button onClick={() => setSearchQuery('')} style={{ border: 'none', background: 'none', color: 'var(--cp-pulse)', font: '600 12px/1 Outfit,sans-serif', cursor: 'pointer' }}>Clear search</button>
+              ) : (
+                <button onClick={onClearFilters} style={{ border: 'none', background: 'none', color: 'var(--cp-pulse)', font: '600 12px/1 Outfit,sans-serif', cursor: 'pointer' }}>Clear filters</button>
+              )}
             </div>
-          ) : issues.map(issue => {
+          ) : displayIssues.map(issue => {
             const it = cardData(issue);
             return (
               <div
                 key={issue.id}
-                onClick={() => onOpen(issue.id)}
+                onClick={() => selectPin(issue.id)}
                 className={styles.row}
                 style={{ display: 'grid', gridTemplateColumns: '46px minmax(0,1fr) 54px', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--cp-line)', cursor: 'pointer', alignItems: 'start', background: 'var(--cp-surface)' }}
               >

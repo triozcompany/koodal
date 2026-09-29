@@ -3,14 +3,17 @@ export type Severity = 'critical' | 'high' | 'medium' | 'low';
 export type Category = 'road' | 'drain' | 'garbage' | 'light' | 'water' | 'tree' | 'footpath';
 export type Priority = 'P1' | 'P2' | 'P3';
 
+export interface MapCamera { center: [number, number]; zoom: number; pitch: number; bearing: number; }
+
 export interface Voice { lang: string; text: string; en: string; }
 export interface MergedReport { by: string; h: number; text: string; sim: number; me?: boolean; id?: string; }
-export interface Evidence { id?: string; by: string; uid: string; ts: number; kind?: 'initial' | 'followup'; }
+export interface Evidence { id?: string; by: string; uid: string; ts: number; kind?: 'initial' | 'followup'; url?: string; }
 export interface IssueEvent { ts: number; title: string; sub: string; icon: string; kind: string; photo: string; }
 export interface Comment { id?: string; by: string; uid?: string; text: string; ts: number; me?: boolean; edited?: boolean; }
 
 export interface Issue {
   id: string;
+  uid?: string;
   cat: Category;
   sev: Severity;
   city: string;
@@ -23,6 +26,10 @@ export interface Issue {
   created: number;
   x: number;
   y: number;
+  lat?: number;
+  lng?: number;
+  /** User-chosen icon at report time; absent → the category icon (see issueIcon). */
+  icon?: string;
   km: number;
   anon: boolean;
   mine: boolean;
@@ -60,11 +67,13 @@ export interface Issue {
 }
 
 export interface Me {
+  uid: string;
   verified: boolean;
   anonDefault: boolean;
   verifiedAt?: number;
   name: string;
   area: string;
   phone?: string;
+  votes: Record<string, 'up' | 'down'>;
 }
 
