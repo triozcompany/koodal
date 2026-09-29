@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Issue } from '@/lib/domain/types';
 import { ago } from '@/lib/domain/rules';
 import { AVB } from '@/lib/domain/stage-style';
-import { ME } from '@/lib/domain/constants';
+import { useApp } from '@/lib/app-context';
 import { IssueTopBar } from '../components/IssueTopBar';
 
 const ANGLES = ['135deg', '45deg', '90deg', '120deg', '60deg', '30deg', '150deg', '75deg', '100deg'];
@@ -28,6 +28,7 @@ interface Props {
 }
 
 export function PhotosScreen({ issue: d, mob, backLabel = 'Nearby', onBack, onDeleteEvidence }: Props) {
+  const { me } = useApp();
   const photos = d.evidence ?? [];
   const photoN = photos.length;
   const contribN = Math.max(1, new Set(photos.map(e => e.uid || e.by)).size);
@@ -101,20 +102,22 @@ export function PhotosScreen({ issue: d, mob, backLabel = 'Nearby', onBack, onDe
                       aspectRatio: isHero ? '16/9' : '4/3',
                       borderRadius: 16,
                       overflow: 'hidden',
-                      background: `repeating-linear-gradient(${ANGLES[k % ANGLES.length]},var(--cp-ph-a) 0 12px,var(--cp-ph-b) 12px 24px)`,
+                      background: e.url ? undefined : `repeating-linear-gradient(${ANGLES[k % ANGLES.length]},var(--cp-ph-a) 0 12px,var(--cp-ph-b) 12px 24px)`,
                       animation: `cp-row .3s ${Math.min(k, PAGE_SIZE) * 0.04}s both`,
                     }}
                   >
-                    <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', font: '500 11px/1 Outfit,sans-serif', color: 'var(--cp-ink-2)', background: 'var(--cp-surface)', padding: '6px 9px', borderRadius: 6, whiteSpace: 'nowrap' }}>
-                      photo {k + 1}
-                    </span>
+                    {e.url
+                      ? <img src={e.url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', font: '500 11px/1 Outfit,sans-serif', color: 'var(--cp-ink-2)', background: 'var(--cp-surface)', padding: '6px 9px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                        photo {k + 1}
+                      </span>}
                     <div style={{ position: 'absolute', left: 10, bottom: 10, display: 'flex', alignItems: 'center', gap: 5, height: 26, padding: '0 8px', borderRadius: 8, background: 'rgb(0 0 0 / .62)', color: '#fff' }}>
                       <span style={{ width: 18, height: 18, borderRadius: 5, background: AVB[nameHash(e.by) % AVB.length], display: 'grid', placeItems: 'center', font: '700 8px/1 Outfit,sans-serif', color: 'var(--cp-ink)', flexShrink: 0 }}>
                         {initials(e.by).slice(0, 1)}
                       </span>
                       <span style={{ font: '600 11px/1 Outfit,sans-serif' }}>{initials(e.by)} · {ago(e.ts)}</span>
                     </div>
-                    {e.uid === ME.uid && e.id && onDeleteEvidence && (
+                    {e.uid === me.uid && e.id && onDeleteEvidence && (
                       <button
                         onClick={() => onDeleteEvidence(e.id!)}
                         aria-label="Delete this photo"

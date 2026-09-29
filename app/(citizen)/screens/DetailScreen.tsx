@@ -1,9 +1,10 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import type { Issue } from '@/lib/domain/types';
-import { CATS } from '@/lib/domain/constants';
+import { CATS, issueIcon } from '@/lib/domain/constants';
 import { PILL, AVB, SEGC, TRACK } from '@/lib/domain/stage-style';
 import { ago, step, slaLeft, corp } from '@/lib/domain/rules';
+import { uploadPhoto } from '@/lib/cloudinary/upload';
 import { Confetti } from '../components/Confetti';
 import { TimelineSheet } from '../components/TimelineSheet';
 import { IssueTopBar } from '../components/IssueTopBar';
@@ -16,12 +17,13 @@ interface Props {
   mob: boolean;
   backLabel?: string;
   meInitials?: string;
+  meUid?: string;
   confettiFired?: boolean;
   celebrateOnOpen?: boolean;
   onBack: () => void;
   onSupport: () => void;
   onOppose?: () => void;
-  onAddEvidence?: () => void;
+  onAddEvidence?: (url?: string) => void;
   onEdit?: () => void;
   onComments?: () => void;
   onPhotos?: () => void;
@@ -78,7 +80,7 @@ const floatBtnBase: React.CSSProperties = {
 };
 
 export function DetailScreen({
-  issue: d, supported, opposed = false, mob, backLabel = 'Nearby', meInitials = 'ME',
+  issue: d, supported, opposed = false, mob, backLabel = 'Nearby', meInitials = 'ME', meUid,
   confettiFired = false, celebrateOnOpen = false,
   onBack, onSupport, onOppose, onAddEvidence, onEdit, onComments, onPhotos, onVerify, onViewCase, onOpenReport, onConfettiDone,
 }: Props) {
@@ -98,6 +100,23 @@ export function DetailScreen({
   const [vw, setVw]                 = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const timelineRef                 = useRef<HTMLDivElement>(null);
   const scrollRef                   = useRef<HTMLDivElement>(null);
+  const evidenceInputRef            = useRef<HTMLInputElement>(null);
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
+
+  const handleEvidenceFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingEvidence(true);
+    try {
+      const { url } = await uploadPhoto(file);
+      onAddEvidence?.(url);
+    } catch (err) {
+      console.error('uploadPhoto failed:', err);
+    } finally {
+      setUploadingEvidence(false);
+    }
+  };
 
   useEffect(() => {
     const update = () => setVw(window.innerWidth);
@@ -134,7 +153,7 @@ export function DetailScreen({
   const actMine    = d.mine && isActive;
   const actCase    = !d.mine && !!d.caseId && isActive;
   const actSupport = !d.mine && !d.caseId && isActive;
-  const myFollowupEvidence = (d.evidence ?? []).filter(e => e.uid === 'me' && e.kind === 'followup').length;
+  const myFollowupEvidence = (d.evidence ?? []).filter(e => e.uid === meUid && e.kind === 'followup').length;
   const canAddEvidence = !actDone && !rejected && myFollowupEvidence < MAX_FOLLOWUP_EVIDENCE;
 
   const holdBg     = supported ? 'var(--cp-surface-2)' : 'var(--cp-ink)';
@@ -284,15 +303,17 @@ export function DetailScreen({
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: mob ? 'repeat(auto-fill,minmax(72px,1fr))' : 'repeat(auto-fill,minmax(110px,1fr))', gap: 6 }}>
         {(d.evidence ?? []).map((e, k) => (
-          <div key={k} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, background: `repeating-linear-gradient(${ANGLES[k % ANGLES.length]},var(--cp-ph-a) 0 6px,var(--cp-ph-b) 6px 12px)` }}>
+          <div key={k} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', background: e.url ? undefined : `repeating-linear-gradient(${ANGLES[k % ANGLES.length]},var(--cp-ph-a) 0 6px,var(--cp-ph-b) 6px 12px)` }}>
+            {e.url && <img src={e.url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
             <span style={{ position: 'absolute', left: 5, bottom: 5, font: '600 9.5px/1 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{e.by} · {ago(e.ts)}</span>
           </div>
         ))}
         {canAddEvidence && (
-          <button onClick={() => onAddEvidence?.()} style={{ aspectRatio: '1', borderRadius: 12, border: '2px dashed var(--cp-ink-3)', background: 'transparent', color: 'var(--cp-ink-2)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 22 }}>
-            <i className="ph-bold ph-camera-plus" />
+          <button onClick={() => evidenceInputRef.current?.click()} disabled={uploadingEvidence} style={{ aspectRatio: '1', borderRadius: 12, border: '2px dashed var(--cp-ink-3)', background: 'transparent', color: 'var(--cp-ink-2)', display: 'grid', placeItems: 'center', cursor: uploadingEvidence ? 'default' : 'pointer', fontSize: 22, opacity: uploadingEvidence ? 0.5 : 1 }}>
+            <i className={`ph-bold ${uploadingEvidence ? 'ph-spinner' : 'ph-camera-plus'}`} style={uploadingEvidence ? { animation: 'cp-spin .7s linear infinite' } : undefined} />
           </button>
         )}
+        <input ref={evidenceInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleEvidenceFile} />
       </div>
     </>
   );
@@ -347,7 +368,7 @@ export function DetailScreen({
         </div>
       )}
       {d.caseId && !rejected && (
-        <button onClick={onViewCase} className={styles.caseBtn} style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '14px 16px', borderRadius: 18, border: '1px solid var(--cp-line)', background: 'var(--cp-peacock)', color: '#fff', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+        <button data-glare="1" onClick={onViewCase} className={styles.caseBtn} style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '14px 16px', borderRadius: 18, border: '1px solid var(--cp-line)', background: 'var(--cp-peacock)', color: '#fff', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 7, font: '600 11px/1 Outfit,sans-serif', letterSpacing: '.08em', opacity: 0.92 }}>
             <i className="ph-fill ph-bank" />OFFICIAL CASE · {corp(d)}
           </span>
@@ -458,7 +479,7 @@ export function DetailScreen({
       {actMine && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           {canEdit ? (
-            <button onClick={onEdit} className={styles.actBtn} style={{ flex: '7 1 0', minWidth: 0, height: 56, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 14.5px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+            <button data-glare="1" onClick={onEdit} className={styles.actBtn} style={{ flex: '7 1 0', minWidth: 0, height: 56, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 14.5px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, whiteSpace: 'nowrap' }}>
               <i className="ph-bold ph-pencil-simple" style={{ fontSize: 18 }} />Edit report
             </button>
           ) : (
@@ -486,12 +507,12 @@ export function DetailScreen({
         </>
       )}
       {actCase && (
-        <button className={styles.actBtn} style={{ flex: 1, width: '100%', height: 60, borderRadius: 999, background: 'var(--cp-ink)', color: 'var(--cp-bg)', border: '1px solid var(--cp-line)', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', font: '600 16px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
+        <button data-glare="1" onClick={onViewCase} className={styles.actBtn} style={{ flex: 1, width: '100%', height: 60, borderRadius: 999, background: 'var(--cp-ink)', color: 'var(--cp-bg)', border: '1px solid var(--cp-line)', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', font: '600 16px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
           <i className="ph-bold ph-bank" style={{ fontSize: 20 }} />Track official case
         </button>
       )}
       {actVerify && (
-        <button onClick={() => onVerify?.()} className={styles.actBtn} style={{ flex: 1, width: '100%', height: 60, borderRadius: 999, background: 'var(--cp-leaf)', color: '#fff', border: '1px solid var(--cp-line)', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', font: '600 16px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
+        <button data-glare="1" onClick={() => onVerify?.()} className={styles.actBtn} style={{ flex: 1, width: '100%', height: 60, borderRadius: 999, background: 'var(--cp-leaf)', color: '#fff', border: '1px solid var(--cp-line)', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', font: '600 16px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
           <i className="ph-bold ph-seal-check" style={{ fontSize: 20 }} />Check the fix
         </button>
       )}
@@ -543,7 +564,7 @@ export function DetailScreen({
       )}
       {actMine && (
         canEdit ? (
-          <button onClick={onEdit} className={styles.actBtn} style={{ flex: '1 1 0', minWidth: 0, height: 60, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 14.5px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+          <button data-glare="1" onClick={onEdit} className={styles.actBtn} style={{ flex: '1 1 0', minWidth: 0, height: 60, borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 14.5px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, whiteSpace: 'nowrap' }}>
             <i className="ph-bold ph-pencil-simple" style={{ fontSize: 18 }} />Edit report
           </button>
         ) : (
@@ -553,12 +574,12 @@ export function DetailScreen({
         )
       )}
       {actCase && (
-        <button className={styles.actBtn} style={{ flex: 1, height: 60, borderRadius: 999, background: 'var(--cp-ink)', color: 'var(--cp-bg)', border: '1px solid var(--cp-line)', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', font: '600 15px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
+        <button data-glare="1" onClick={onViewCase} className={styles.actBtn} style={{ flex: 1, height: 60, borderRadius: 999, background: 'var(--cp-ink)', color: 'var(--cp-bg)', border: '1px solid var(--cp-line)', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', font: '600 15px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
           <i className="ph-bold ph-bank" style={{ fontSize: 20 }} />Track official case
         </button>
       )}
       {actVerify && (
-        <button onClick={() => onVerify?.()} className={styles.actBtn} style={{ flex: 1, height: 60, borderRadius: 999, background: 'var(--cp-leaf)', color: '#fff', border: '1px solid var(--cp-line)', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', font: '600 15px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
+        <button data-glare="1" onClick={() => onVerify?.()} className={styles.actBtn} style={{ flex: 1, height: 60, borderRadius: 999, background: 'var(--cp-leaf)', color: '#fff', border: '1px solid var(--cp-line)', boxShadow: '0 8px 18px -8px rgb(0 0 0 / .45),inset 0 1px 0 rgb(255 255 255 / .14)', font: '600 15px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
           <i className="ph-bold ph-seal-check" style={{ fontSize: 20 }} />Check the fix
         </button>
       )}
@@ -583,18 +604,23 @@ export function DetailScreen({
         <div ref={scrollRef} style={{ position: 'absolute', inset: 0, overflowY: 'auto', paddingBottom: 120 }}>
           {/* Mosaic photos — same grid as desktop but shorter */}
           <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 6, height: 'min(260px, 56vw)', overflow: 'hidden' }}>
-            {MOSAIC.map((m, k) => (
-              <button
-                key={k}
-                onClick={() => onPhotos?.()}
-                className={styles.mosaicBtn}
-                style={{ position: 'relative', gridColumn: m.gc, gridRow: m.gr, border: 'none', padding: 0, cursor: 'pointer', overflow: 'hidden', background: `repeating-linear-gradient(${ANGLES[k]},var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)` }}
-              >
-                <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', font: '500 11px/1 Outfit,sans-serif', color: 'var(--cp-ink-2)', background: 'var(--cp-surface)', padding: '6px 9px', borderRadius: 6, whiteSpace: 'nowrap' }}>photo {k + 1}</span>
-              </button>
-            ))}
+            {MOSAIC.map((m, k) => {
+              const url = d.evidence?.[k]?.url;
+              return (
+                <button
+                  key={k}
+                  onClick={() => onPhotos?.()}
+                  className={styles.mosaicBtn}
+                  style={{ position: 'relative', gridColumn: m.gc, gridRow: m.gr, border: 'none', padding: 0, cursor: 'pointer', overflow: 'hidden', background: url ? undefined : `repeating-linear-gradient(${ANGLES[k]},var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)` }}
+                >
+                  {url
+                    ? <img src={url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', font: '500 11px/1 Outfit,sans-serif', color: 'var(--cp-ink-2)', background: 'var(--cp-surface)', padding: '6px 9px', borderRadius: 6, whiteSpace: 'nowrap' }}>photo {k + 1}</span>}
+                </button>
+              );
+            })}
             <div style={{ position: 'absolute', left: 16, bottom: -22, width: 48, height: 48, borderRadius: 14, background: 'var(--cp-ink)', border: '3px solid var(--cp-bg)', display: 'grid', placeItems: 'center', pointerEvents: 'none', zIndex: 2 }}>
-              <i className={`ph-bold ${cat.icon}`} style={{ fontSize: 23, color: 'var(--cp-bg)' }} />
+              <i className={`ph-bold ${issueIcon(d)}`} style={{ fontSize: 23, color: 'var(--cp-bg)' }} />
             </div>
             <button
               onClick={() => onPhotos?.()}
@@ -685,18 +711,23 @@ export function DetailScreen({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
             {/* 5-cell mosaic */}
             <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 8, height: galH, borderRadius: 24, overflow: 'hidden' }}>
-              {MOSAIC.map((m, k) => (
-                <button
-                  key={k}
-                  onClick={() => onPhotos?.()}
-                  className={styles.mosaicBtn}
-                  style={{ position: 'relative', gridColumn: m.gc, gridRow: m.gr, border: 'none', padding: 0, cursor: 'pointer', overflow: 'hidden', background: `repeating-linear-gradient(${ANGLES[k]},var(--cp-ph-a) 0 12px,var(--cp-ph-b) 12px 24px)` }}
-                >
-                  <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', font: '500 11px/1 Outfit,sans-serif', color: 'var(--cp-ink-2)', background: 'var(--cp-surface)', padding: '6px 9px', borderRadius: 6, whiteSpace: 'nowrap' }}>photo {k + 1}</span>
-                </button>
-              ))}
+              {MOSAIC.map((m, k) => {
+                const url = d.evidence?.[k]?.url;
+                return (
+                  <button
+                    key={k}
+                    onClick={() => onPhotos?.()}
+                    className={styles.mosaicBtn}
+                    style={{ position: 'relative', gridColumn: m.gc, gridRow: m.gr, border: 'none', padding: 0, cursor: 'pointer', overflow: 'hidden', background: url ? undefined : `repeating-linear-gradient(${ANGLES[k]},var(--cp-ph-a) 0 12px,var(--cp-ph-b) 12px 24px)` }}
+                  >
+                    {url
+                      ? <img src={url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', font: '500 11px/1 Outfit,sans-serif', color: 'var(--cp-ink-2)', background: 'var(--cp-surface)', padding: '6px 9px', borderRadius: 6, whiteSpace: 'nowrap' }}>photo {k + 1}</span>}
+                  </button>
+                );
+              })}
               <div style={{ position: 'absolute', left: 18, bottom: 18, width: 52, height: 52, borderRadius: 16, background: 'var(--cp-ink)', border: '3px solid var(--cp-surface)', display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
-                <i className={`ph-bold ${cat.icon}`} style={{ fontSize: 25, color: 'var(--cp-bg)' }} />
+                <i className={`ph-bold ${issueIcon(d)}`} style={{ fontSize: 25, color: 'var(--cp-bg)' }} />
               </div>
               <button
                 onClick={() => onPhotos?.()}

@@ -68,8 +68,10 @@ export function PhotoLightbox({ shots, initialIndex, street, onClose, onDelete }
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
-        <div style={{ position: 'absolute', inset: 0, transform: `translateX(${dragX}px)`, transition: dragging ? 'none' : 'transform .35s cubic-bezier(.3,1.4,.5,1)', borderRadius: 20, overflow: 'hidden', background: `repeating-linear-gradient(${135 + idx * 25}deg,#23252b 0 12px,#1b1d22 12px 24px)`, display: 'grid', placeItems: 'center' }}>
-          <i className={`ph-bold ${current.icon}`} style={{ fontSize: 64, color: 'rgba(255,255,255,.3)' }} />
+        <div style={{ position: 'absolute', inset: 0, transform: `translateX(${dragX}px)`, transition: dragging ? 'none' : 'transform .35s cubic-bezier(.3,1.4,.5,1)', borderRadius: 20, overflow: 'hidden', background: (current.url || current.dataUrl) ? undefined : `repeating-linear-gradient(${135 + idx * 25}deg,#23252b 0 12px,#1b1d22 12px 24px)`, display: 'grid', placeItems: 'center' }}>
+          {current.url || current.dataUrl
+            ? <img src={current.url || current.dataUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <i className={`ph-bold ${current.icon}`} style={{ fontSize: 64, color: 'rgba(255,255,255,.3)' }} />}
         </div>
 
         {shots.length > 1 && (
@@ -108,15 +110,15 @@ export function PhotoLightbox({ shots, initialIndex, street, onClose, onDelete }
               aria-label={`View photo ${k + 1}`}
               onClick={() => setSelIdx(k)}
               style={{
-                flexShrink: 0, width: 48, height: 48, borderRadius: 10,
-                background: `repeating-linear-gradient(${135 + k * 25}deg,#2a2c33 0 6px,#1f2126 6px 12px)`,
+                position: 'relative', flexShrink: 0, width: 48, height: 48, borderRadius: 10, overflow: 'hidden',
+                background: (s.url || s.dataUrl) ? undefined : `repeating-linear-gradient(${135 + k * 25}deg,#2a2c33 0 6px,#1f2126 6px 12px)`,
                 border: isSel ? '2px solid #fff' : '2px solid transparent',
                 opacity: isSel ? 1 : 0.5,
                 display: 'grid', placeItems: 'center', color: '#c9cbd2', fontSize: 16, cursor: 'pointer',
                 transition: 'opacity .25s, border-color .25s',
               }}
             >
-              <i className={`ph-bold ${s.icon}`} />
+              {s.url || s.dataUrl ? <img src={s.url || s.dataUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className={`ph-bold ${s.icon}`} />}
             </button>
           );
         })}

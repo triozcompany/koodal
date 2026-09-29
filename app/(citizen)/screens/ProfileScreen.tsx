@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import type { Issue, Me } from '@/lib/domain/types';
 import { FeedCard } from './FeedScreen';
+import { Masonry } from '../components/Masonry';
+import { useInfiniteSlice } from '@/lib/hooks/useInfiniteSlice';
 
 export type ProfileTab = 'reports' | 'activity';
 
@@ -44,6 +46,7 @@ export function ProfileScreen({ issues, supported, opposed, me, meInitials, init
   const counts: Record<ProfileTab, number> = { reports: myReports.length, activity: backed.length };
   const rows: Record<ProfileTab, Issue[]> = { reports: myReports, activity: backed };
   const list = rows[tab];
+  const { visible, hasMore, loadMore } = useInfiniteSlice(list, tab);
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', animation: 'cp-in .35s cubic-bezier(.2,.9,.25,1.1) both' }}>
@@ -100,11 +103,15 @@ export function ProfileScreen({ issues, supported, opposed, me, meInitials, init
         {list.length === 0 ? (
           <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--cp-ink-3)', font: '600 13px/1.4 Outfit,sans-serif' }}>{EMPTY_TXT[tab]}</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {list.map(i => (
-              <FeedCard key={i.id} issue={i} supported={!!supported[i.id]} opposed={!!opposed[i.id]} mob onOpen={onOpen} onSupport={onSupport} onComments={onComments} onOppose={onOppose} />
-            ))}
-          </div>
+          <Masonry
+            key={tab}
+            items={visible}
+            getKey={i => i.id}
+            hasMore={hasMore}
+            onLoadMore={loadMore}
+            gap={12}
+            renderItem={i => <FeedCard issue={i} supported={!!supported[i.id]} opposed={!!opposed[i.id]} mob onOpen={onOpen} onSupport={onSupport} onComments={onComments} onOppose={onOppose} />}
+          />
         )}
       </div>
     </div>

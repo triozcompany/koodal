@@ -1,6 +1,6 @@
 'use client';
 import type { Issue } from '@/lib/domain/types';
-import { CATS } from '@/lib/domain/constants';
+import { CATS, issueIcon } from '@/lib/domain/constants';
 import { PILL, AVB } from '@/lib/domain/stage-style';
 import { ago, score, topTags } from '@/lib/domain/rules';
 import { ImageCarousel } from '../components/ImageCarousel';
@@ -185,9 +185,9 @@ export function FeedCard({ issue, supported, opposed, mob, onOpen, onSupport, on
 
       {/* Photo carousel */}
       <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--cp-line)' }}>
-        <ImageCarousel count={photoN}>
+        <ImageCarousel count={photoN} urls={issue.evidence?.map(e => e.url)}>
           <div style={{ position: 'absolute', left: 12, top: 12, width: 34, height: 34, borderRadius: 10, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
-            <i className={`ph-bold ${CATS[issue.cat].icon}`} style={{ color: 'var(--cp-bg)', fontSize: 17 }} />
+            <i className={`ph-bold ${issueIcon(issue)}`} style={{ color: 'var(--cp-bg)', fontSize: 17 }} />
           </div>
           <span onClick={() => onOpen(issue.id)} style={{ position: 'absolute', right: 10, bottom: 10, display: 'flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 9, background: 'var(--cp-surface)', font: '600 12px/1 Outfit,sans-serif', whiteSpace: 'nowrap', cursor: 'pointer' }}>
             <i className="ph-bold ph-images" />

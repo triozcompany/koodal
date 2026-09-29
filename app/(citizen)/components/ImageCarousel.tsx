@@ -5,12 +5,15 @@ const ANGLES = ['135deg', '45deg', '90deg', '120deg', '60deg', '150deg', '30deg'
 
 interface Props {
   count: number;
+  /** Real photo URL per slide, same length/order as the slides `count` implies.
+   * A slide with no url (or none passed at all) falls back to the placeholder. */
+  urls?: (string | undefined)[];
   intervalMs?: number;
   /** Overlay content (badges, labels) rendered on top of the sliding track, fixed in place. */
   children?: React.ReactNode;
 }
 
-export function ImageCarousel({ count, intervalMs = 3500, children }: Props) {
+export function ImageCarousel({ count, urls, intervalMs = 3500, children }: Props) {
   const n = Math.max(1, count);
   const [idx, setIdx] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -31,9 +34,14 @@ export function ImageCarousel({ count, intervalMs = 3500, children }: Props) {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <div style={{ display: 'flex', width: `${n * 100}%`, height: '100%', transform: `translateX(-${idx * (100 / n)}%)`, transition: 'transform .45s cubic-bezier(.2,.9,.3,1.1)' }}>
-        {Array.from({ length: n }).map((_, k) => (
-          <div key={k} style={{ width: `${100 / n}%`, height: '100%', flexShrink: 0, background: `repeating-linear-gradient(${ANGLES[k % ANGLES.length]},var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)` }} />
-        ))}
+        {Array.from({ length: n }).map((_, k) => {
+          const url = urls?.[k];
+          return url ? (
+            <img key={k} src={url} alt="" style={{ width: `${100 / n}%`, height: '100%', flexShrink: 0, objectFit: 'cover' }} />
+          ) : (
+            <div key={k} style={{ width: `${100 / n}%`, height: '100%', flexShrink: 0, background: `repeating-linear-gradient(${ANGLES[k % ANGLES.length]},var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)` }} />
+          );
+        })}
       </div>
       {children}
       {n > 1 && (

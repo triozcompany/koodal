@@ -68,7 +68,9 @@ export function ReportMediaViewer({ shots, aiHint, onAdd, onRemove, onRetakeAll,
         onClick={() => { if (suppressClickRef.current) { suppressClickRef.current = false; return; } setLightboxOpen(true); }}
       >
         <div style={{ position: 'absolute', inset: 0, transform: `translateX(${dragX}px)`, transition: dragging ? 'none' : 'transform .35s cubic-bezier(.3,1.4,.5,1)' }}>
-          <PhotoPlaceholder icon={current.icon} angle={135 + idx * 25} />
+          {current.url || current.dataUrl
+            ? <img src={current.url || current.dataUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <PhotoPlaceholder icon={current.icon} angle={135 + idx * 25} />}
         </div>
 
         {/* Gradient fades */}
@@ -125,8 +127,8 @@ export function ReportMediaViewer({ shots, aiHint, onAdd, onRemove, onRetakeAll,
                 aria-label={`View photo ${k + 1}`}
                 onClick={() => setSelIdx(k)}
                 style={{
-                  position: 'relative', flexShrink: 0, width: 56, height: 56, borderRadius: 12,
-                  background: `repeating-linear-gradient(${135 + k * 25}deg,#2a2c33 0 6px,#1f2126 6px 12px)`,
+                  position: 'relative', flexShrink: 0, width: 56, height: 56, borderRadius: 12, overflow: 'hidden',
+                  background: (s.url || s.dataUrl) ? undefined : `repeating-linear-gradient(${135 + k * 25}deg,#2a2c33 0 6px,#1f2126 6px 12px)`,
                   border: isSel ? '2px solid #fff' : '2px solid transparent',
                   opacity: isSel ? 1 : 0.55,
                   transform: isSel ? 'scale(1)' : 'scale(0.92)',
@@ -134,7 +136,7 @@ export function ReportMediaViewer({ shots, aiHint, onAdd, onRemove, onRetakeAll,
                   display: 'grid', placeItems: 'center', color: '#c9cbd2', fontSize: 18, cursor: 'pointer',
                 }}
               >
-                <i className={`ph-bold ${s.icon}`} />
+                {s.url || s.dataUrl ? <img src={s.url || s.dataUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className={`ph-bold ${s.icon}`} />}
               </button>
             );
           })}
