@@ -16,9 +16,11 @@ const STAGE_GROUPS: Record<string, string[]> = {
 };
 
 function matchesRegion(i: Issue, f: FilterState): boolean {
-  return f.region === 'near'
-    ? (i.city === 'Chennai' && i.km <= 1.5)
-    : (i.city === f.region || i.area === f.region);
+  // 'near' (the default) shows everything — there's no real per-viewer
+  // distance tracked yet (every report is saved with a placeholder km), so
+  // hardcoding a single city here just silently hid reports from anywhere
+  // else. An explicit city/area pick still narrows normally.
+  return f.region === 'near' ? true : (i.city === f.region || i.area === f.region);
 }
 
 /** Category/status/severity predicate, without the region check — Search has no

@@ -109,7 +109,7 @@ export function LocationDrawer({ f, onChange, onClose, issues, mobile }: Props) 
               </span>
               <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                 <span style={{ font: '600 14.5px/1.2 Outfit,sans-serif', color: 'var(--cp-ink)' }}>Near me</span>
-                <span style={{ font: '500 12.5px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>Velachery, Chennai · within 1.5 km</span>
+                <span style={{ font: '500 12.5px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>All reports, every city</span>
               </span>
               {f.region === 'near' && <i className="ph-bold ph-check" style={{ fontSize: 18, color: 'var(--cp-leaf)', flexShrink: 0 }} />}
             </button>

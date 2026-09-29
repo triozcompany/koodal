@@ -13,11 +13,13 @@ export default function NearbyPage() {
     setFilterOpen, setLocationOpen, mapMaximized, setMapMaximized, mobileMapMax, setMobileMapMax,
   } = useApp();
   const { f, setF, filtered, fCount } = useFilters(issues);
+  // Closed issues are done — the map/drawer is for what's still active, not an archive.
+  const visible = filtered.filter(i => i.stage !== 'closed');
 
   if (mob) {
     return (
       <HomeScreen
-        issues={filtered}
+        issues={visible}
         f={f}
         onFilter={() => setFilterOpen(true)}
         onLocation={() => setLocationOpen(true)}
@@ -36,7 +38,7 @@ export default function NearbyPage() {
 
   return (
     <DesktopHome
-      issues={filtered}
+      issues={visible}
       f={f}
       onFilter={() => setFilterOpen(true)}
       onLocation={() => setLocationOpen(true)}

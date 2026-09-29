@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Issue } from '@/lib/domain/types';
 import { CATS, SEVW, issueIcon } from '@/lib/domain/constants';
@@ -7,7 +7,10 @@ import { PILL, SEGC, TRACK } from '@/lib/domain/stage-style';
 import { ago, score, step, caseBadge, dedupeCases } from '@/lib/domain/rules';
 import { matchesFilter } from '@/lib/domain/filters';
 import type { FilterState } from '@/lib/domain/filters';
+import { useApp } from '@/lib/app-context';
+import { useInfiniteSlice } from '@/lib/hooks/useInfiniteSlice';
 import { STG_OPTS, SEV_OPTS } from '../components/FilterPanel';
+import { LoadMoreSentinel } from '../components/LoadMoreSentinel';
 
 interface Props {
   issues: Issue[];
@@ -63,13 +66,15 @@ export function TileCard({ issue, onOpen, onEdit }: { issue: Issue; onOpen: (id:
   const cmtN     = issue.comments?.length ?? 0;
   const canEdit  = issue.mine && ['reported', 'community'].includes(issue.stage);
   const lockedMine = issue.mine && !canEdit;
+  const photoUrl = issue.evidence?.find(e => e.url)?.url;
 
   return (
     <div
       onClick={() => onOpen(issue.id)}
       style={{ display: 'flex', flexDirection: 'column', borderRadius: 20, background: 'var(--cp-surface)', border: '1px solid var(--cp-line)', overflow: 'hidden', cursor: 'pointer', minWidth: 0, animation: 'cp-row .3s ease-out both' }}
     >
-      <div style={{ position: 'relative', aspectRatio: '4/3', background: 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)' }}>
+      <div style={{ position: 'relative', aspectRatio: '4/3', background: photoUrl ? undefined : 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)' }}>
+        {photoUrl && <img src={photoUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
         <span style={{ position: 'absolute', left: 10, top: 10, height: 22, padding: '0 8px', borderRadius: 11, background: pc, color: pfg, font: '600 11px/22px Outfit,sans-serif', whiteSpace: 'nowrap' }}>{pl}</span>
         <span style={{ position: 'absolute', right: 10, top: 10, width: 30, height: 30, borderRadius: 10, background: 'var(--cp-ink)', color: 'var(--cp-bg)', display: 'grid', placeItems: 'center', fontSize: 15 }}>
           <i className={`ph-bold ${issueIcon(issue)}`} />
@@ -132,13 +137,15 @@ export function CaseCard({ issue, onOpen, needsYou, onConfirmFix }: { issue: Iss
   const st       = step(issue.stage);
   const oi       = (issue.assignee ?? issue.dept ?? 'GCC').split(' ').map(s => s[0]).join('').slice(0, 2).toUpperCase();
   const badge    = caseBadge(issue);
+  const photoUrl = issue.evidence?.find(e => e.url)?.url;
 
   return (
     <div
       onClick={() => onOpen(issue.id)}
       style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 16, borderRadius: 20, background: 'var(--cp-surface)', border: '1px solid var(--cp-line)', cursor: 'pointer', animation: 'cp-row .3s ease-out both' }}
     >
-      <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 14, overflow: 'hidden', background: 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)', border: '1px solid var(--cp-line)' }}>
+      <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 14, overflow: 'hidden', background: photoUrl ? undefined : 'repeating-linear-gradient(135deg,var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)', border: '1px solid var(--cp-line)' }}>
+        {photoUrl && <img src={photoUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
         <div style={{ position: 'absolute', left: 10, top: 10, width: 32, height: 32, borderRadius: 10, background: 'var(--cp-ink)', display: 'grid', placeItems: 'center' }}>
           <i className={`ph-bold ${issueIcon(issue)}`} style={{ color: 'var(--cp-bg)', fontSize: 16 }} />
         </div>
@@ -188,25 +195,57 @@ export function CaseCard({ issue, onOpen, needsYou, onConfirmFix }: { issue: Iss
 }
 
 export function SearchScreen({ issues, supported, meInitials, meVerified, onOpen, onSupport, onFilter, onEdit, onProfile, f, onFilterChange, fCount = 0 }: Props) {
-  const [q, setQ]             = useState('');
-  const [sortMode, setSortMode] = useState<SortMode>('relevant');
+  const { searchQuery, setSearchQuery, searchSortMode, setSearchSortMode, searchScroll, setSearchScroll } = useApp();
+
+  // Seeded once from context (survives navigating to /issues/[id] and back),
+  // then kept local — typing/scrolling stay fast, with no context writes
+  // until the unmount-sync effect below.
+  const [q, setQ]             = useState(searchQuery);
+  const [sortMode, setSortMode] = useState<SortMode>(searchSortMode as SortMode);
   const [sortOpen, setSortOpen] = useState(false);
   const sortBtnRef = useRef<HTMLButtonElement>(null);
-  const [sortMenuPos, setSortMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [sortMenuPos, setSortMenuPos] = useState<{ top: number; left: number; flipUp?: boolean } | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const restoredScrollRef = useRef(false);
 
   function toggleSort() {
     if (!sortOpen) {
       const r = sortBtnRef.current?.getBoundingClientRect();
-      if (r) setSortMenuPos({ top: r.bottom + 2, left: r.left });
+      if (r) {
+        const menuW = Math.min(280, window.innerWidth - 32);
+        const menuH = SORT_OPTS.length * 42 + 40;
+        const left = Math.min(Math.max(8, r.left), window.innerWidth - menuW - 8);
+        const flipUp = r.bottom + menuH > window.innerHeight;
+        setSortMenuPos({ top: flipUp ? r.top - menuH - 2 : r.bottom + 2, left, flipUp });
+      }
     }
     setSortOpen(v => !v);
   }
 
+  const qRef = useRef(q); qRef.current = q;
+  const sortModeRef = useRef(sortMode); sortModeRef.current = sortMode;
+  useEffect(() => {
+    return () => {
+      setSearchQuery(qRef.current);
+      setSearchSortMode(sortModeRef.current);
+      if (listRef.current) setSearchScroll(listRef.current.scrollTop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (restoredScrollRef.current || !listRef.current || issues.length === 0) return;
+    restoredScrollRef.current = true;
+    listRef.current.scrollTop = searchScroll;
+  }, [issues.length, searchScroll]);
+
   const filteredIssues = f ? issues.filter(i => matchesFilter(i, f)) : issues;
   const results    = searchIssues(filteredIssues, q);
   const sorted     = sortResults(results, sortMode);
-  const sCases     = dedupeCases(sorted.filter(i => !!i.caseId));
-  const sReports   = sorted.filter(i => !i.caseId);
+  const sCasesAll  = dedupeCases(sorted.filter(i => !!i.caseId));
+  const sReportsAll = sorted.filter(i => !i.caseId);
+  const { visible: sCases, hasMore: hasMoreCases, loadMore: loadMoreCases } = useInfiniteSlice(sCasesAll, q);
+  const { visible: sReports, hasMore: hasMoreReports, loadMore: loadMoreReports } = useInfiniteSlice(sReportsAll, q);
   const latestNear = filteredIssues.filter(i => i.city === 'Chennai' && i.km < 3 && i.stage !== 'rejected').sort((a, b) => b.created - a.created).slice(0, 6);
   const hasTagOrQuery = !!q || !!f?.tag;
   const showIdle   = !hasTagOrQuery;
@@ -306,7 +345,7 @@ export function SearchScreen({ issues, supported, meInitials, meVerified, onOpen
       </div>
 
       {/* Content area */}
-      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 110 }}>
+      <div ref={listRef} style={{ flex: 1, overflowY: 'auto', paddingBottom: 110 }}>
 
         {/* Idle state */}
         {showIdle && (
@@ -336,26 +375,28 @@ export function SearchScreen({ issues, supported, meInitials, meVerified, onOpen
         {showRes && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 22, padding: sPad }}>
             <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sorted.length} results</span>
-            {sCases.length > 0 && (
+            {sCasesAll.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                   <span style={{ font: "400 18px/1 'DM Serif Display',serif", letterSpacing: '-.02em' }}>Cases</span>
-                  <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sCases.length}</span>
+                  <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sCasesAll.length}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
                   {sCases.map(i => <CaseCard key={i.id} issue={i} onOpen={onOpen} />)}
                 </div>
+                <LoadMoreSentinel hasMore={hasMoreCases} onLoadMore={loadMoreCases} />
               </div>
             )}
-            {sReports.length > 0 && (
+            {sReportsAll.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                   <span style={{ font: "400 18px/1 'DM Serif Display',serif", letterSpacing: '-.02em' }}>Reports</span>
-                  <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sReports.length}</span>
+                  <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sReportsAll.length}</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   {sReports.map(i => <TileCard key={i.id} issue={i} onOpen={onOpen} onEdit={onEdit} />)}
                 </div>
+                <LoadMoreSentinel hasMore={hasMoreReports} onLoadMore={loadMoreReports} />
               </div>
             )}
           </div>

@@ -186,6 +186,13 @@ export function HomeScreen({
 
   const mSelIssue = mSelId ? issues.find(i => i.id === mSelId) ?? null : null;
   const hasMSel = sheetHidden && !!mSelIssue;
+  // Prev/next cycle through whichever issues are currently visible (the same
+  // set pinned on the map), not the full unfiltered list.
+  const mSelIdx = mSelIssue ? displayIssues.findIndex(i => i.id === mSelIssue.id) : -1;
+  const mSelHasPrev = mSelIdx > 0;
+  const mSelHasNext = mSelIdx >= 0 && mSelIdx < displayIssues.length - 1;
+  const goMSelPrev = () => { if (mSelHasPrev) selectPin(displayIssues[mSelIdx - 1].id); };
+  const goMSelNext = () => { if (mSelHasNext) selectPin(displayIssues[mSelIdx + 1].id); };
 
   return (
     <div style={{ position: 'absolute', inset: 0, animation: 'cp-in .38s cubic-bezier(.2,.9,.25,1.1) both' }}>
@@ -246,7 +253,7 @@ export function HomeScreen({
         const supBg = selOn ? 'var(--cp-pulse)' : PIN_PREVIEW_DARK.supportBtnBg;
         const photoUrl = mSelIssue.evidence?.find(e => e.url)?.url;
         return (
-          <div style={{ position: 'absolute', left: 12, right: 12, bottom: navHidden ? 82 : 96, zIndex: 7, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+          <div style={{ position: 'absolute', left: 12, right: 12, bottom: navHidden ? 24 : 96, zIndex: 7, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
             <button
               data-glare="1"
               onClick={() => { setSheetHidden(false); setSheetTop(null); setMSelId(null); }}
@@ -257,6 +264,27 @@ export function HomeScreen({
               Show list · {displayIssues.length}
             </button>
             <div data-cp-theme="dark" style={{ width: '100%', borderRadius: 20, background: PIN_PREVIEW_DARK.cardBg, color: PIN_PREVIEW_DARK.cardText, border: PIN_PREVIEW_DARK.cardBorder, boxShadow: '0 18px 40px -16px rgb(0 0 0 / .4),0 0 0 1px rgb(0 0 0 / .05)', overflow: 'hidden', animation: 'cp-sheet .35s cubic-bezier(.2,.9,.3,1.15) both' }}>
+            {mSelIdx >= 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 8px 0' }}>
+                <button
+                  onClick={goMSelPrev}
+                  disabled={!mSelHasPrev}
+                  title="Previous issue"
+                  style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'transparent', color: PIN_PREVIEW_DARK.metaText, cursor: mSelHasPrev ? 'pointer' : 'default', opacity: mSelHasPrev ? 1 : 0.3, display: 'grid', placeItems: 'center', fontSize: 15 }}
+                >
+                  <i className="ph-bold ph-caret-left" />
+                </button>
+                <span style={{ font: '600 11.5px/1 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText }}>{mSelIdx + 1} of {displayIssues.length}</span>
+                <button
+                  onClick={goMSelNext}
+                  disabled={!mSelHasNext}
+                  title="Next issue"
+                  style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'transparent', color: PIN_PREVIEW_DARK.metaText, cursor: mSelHasNext ? 'pointer' : 'default', opacity: mSelHasNext ? 1 : 0.3, display: 'grid', placeItems: 'center', fontSize: 15 }}
+                >
+                  <i className="ph-bold ph-caret-right" />
+                </button>
+              </div>
+            )}
             <div style={{ position: 'relative', height: 140, background: photoUrl ? undefined : `repeating-linear-gradient(135deg,${PIN_PREVIEW_DARK.photoGradientA} 0 10px,${PIN_PREVIEW_DARK.photoGradientB} 10px 20px)`, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
               {photoUrl ? (
                 <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

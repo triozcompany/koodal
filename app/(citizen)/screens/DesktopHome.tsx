@@ -116,6 +116,13 @@ export function DesktopHome({ issues, f, onFilter, onLocation, onOpen, onSupport
     const selOn = !!supported[selIssue.id];
     return { ...it, sbD: selOn ? 'var(--cp-pulse)' : PIN_PREVIEW_DARK.supportBtnBg, conf: selIssue.conf };
   })() : null;
+  // Prev/next cycle through whichever issues are currently visible (the same
+  // set pinned on the map), not the full unfiltered list.
+  const selIdx = selIssue ? displayIssues.findIndex(i => i.id === selIssue.id) : -1;
+  const selHasPrev = selIdx > 0;
+  const selHasNext = selIdx >= 0 && selIdx < displayIssues.length - 1;
+  const goSelPrev = () => { if (selHasPrev) { const id = displayIssues[selIdx - 1].id; setSelId(id); setFocusId(id); } };
+  const goSelNext = () => { if (selHasNext) { const id = displayIssues[selIdx + 1].id; setSelId(id); setFocusId(id); } };
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `${listW} minmax(0,1fr)`, transition: 'grid-template-columns .35s cubic-bezier(.2,.9,.3,1)', height: '100vh', animation: 'cp-row .3s ease-out both' }}>
@@ -257,6 +264,27 @@ export function DesktopHome({ issues, f, onFilter, onLocation, onOpen, onSupport
             data-cp-theme="dark"
             style={{ position: 'absolute', right: 20, bottom: 20, width: 'min(340px,calc(100% - 40px))', boxSizing: 'border-box', borderRadius: 22, background: PIN_PREVIEW_DARK.cardBg, color: PIN_PREVIEW_DARK.cardText, border: PIN_PREVIEW_DARK.cardBorder, boxShadow: '0 24px 50px -18px rgb(0 0 0 / .55)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'cp-row .3s cubic-bezier(.2,.9,.3,1.2) both', zIndex: 9 }}
           >
+            {selIdx >= 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 8px 0', flexShrink: 0 }}>
+                <button
+                  onClick={goSelPrev}
+                  disabled={!selHasPrev}
+                  title="Previous issue"
+                  style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'transparent', color: PIN_PREVIEW_DARK.metaText, cursor: selHasPrev ? 'pointer' : 'default', opacity: selHasPrev ? 1 : 0.3, display: 'grid', placeItems: 'center', fontSize: 13 }}
+                >
+                  <i className="ph-bold ph-caret-left" />
+                </button>
+                <span style={{ font: '600 11.5px/1 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText }}>{selIdx + 1} of {displayIssues.length}</span>
+                <button
+                  onClick={goSelNext}
+                  disabled={!selHasNext}
+                  title="Next issue"
+                  style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'transparent', color: PIN_PREVIEW_DARK.metaText, cursor: selHasNext ? 'pointer' : 'default', opacity: selHasNext ? 1 : 0.3, display: 'grid', placeItems: 'center', fontSize: 13 }}
+                >
+                  <i className="ph-bold ph-caret-right" />
+                </button>
+              </div>
+            )}
             <div style={{ position: 'relative', height: 150, flexShrink: 0, background: photoUrl ? undefined : `repeating-linear-gradient(135deg,${PIN_PREVIEW_DARK.photoGradientA} 0 12px,${PIN_PREVIEW_DARK.photoGradientB} 12px 24px)` }}>
               {photoUrl && <img src={photoUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
               <span style={{ position: 'absolute', left: 12, top: 12, display: 'inline-flex', alignItems: 'center', height: 26, padding: '0 10px', borderRadius: 999, background: selData.pc, color: selData.pfg, font: '600 11.5px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}>{selData.pl}</span>

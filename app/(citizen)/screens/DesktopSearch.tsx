@@ -1,10 +1,13 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Issue } from '@/lib/domain/types';
 import { CATS } from '@/lib/domain/constants';
 import { matchesFilter, type FilterState } from '@/lib/domain/filters';
+import { useApp } from '@/lib/app-context';
+import { useInfiniteSlice } from '@/lib/hooks/useInfiniteSlice';
 import { STG_OPTS, SEV_OPTS } from '../components/FilterPanel';
+import { LoadMoreSentinel } from '../components/LoadMoreSentinel';
 import { TileCard, CaseCard, searchIssues, sortResults, SORT_OPTS, type SortMode } from './SearchScreen';
 import { dedupeCases } from '@/lib/domain/rules';
 
@@ -19,25 +22,53 @@ interface Props {
 }
 
 export function DesktopSearch({ issues, f, onFilterChange, onOpen, onEdit, onFilter, fCount = 0 }: Props) {
-  const [q, setQ] = useState('');
-  const [sortMode, setSortMode] = useState<SortMode>('relevant');
+  const { searchQuery, setSearchQuery, searchSortMode, setSearchSortMode, searchScroll, setSearchScroll } = useApp();
+
+  const [q, setQ] = useState(searchQuery);
+  const [sortMode, setSortMode] = useState<SortMode>(searchSortMode as SortMode);
   const [sortOpen, setSortOpen] = useState(false);
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [sortMenuPos, setSortMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const restoredScrollRef = useRef(false);
 
   function toggleSort() {
     if (!sortOpen) {
       const r = sortBtnRef.current?.getBoundingClientRect();
-      if (r) setSortMenuPos({ top: r.bottom + 2, left: r.left });
+      if (r) {
+        const menuW = Math.min(280, window.innerWidth - 32);
+        const menuH = SORT_OPTS.length * 42 + 40;
+        const left = Math.min(Math.max(8, r.left), window.innerWidth - menuW - 8);
+        const flipUp = r.bottom + menuH > window.innerHeight;
+        setSortMenuPos({ top: flipUp ? r.top - menuH - 2 : r.bottom + 2, left });
+      }
     }
     setSortOpen(v => !v);
   }
 
+  const qRef = useRef(q); qRef.current = q;
+  const sortModeRef = useRef(sortMode); sortModeRef.current = sortMode;
+  useEffect(() => {
+    return () => {
+      setSearchQuery(qRef.current);
+      setSearchSortMode(sortModeRef.current);
+      setSearchScroll(window.scrollY);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (restoredScrollRef.current || issues.length === 0) return;
+    restoredScrollRef.current = true;
+    window.scrollTo(0, searchScroll);
+  }, [issues.length, searchScroll]);
+
   const filteredIssues = issues.filter(i => matchesFilter(i, f));
   const results    = searchIssues(filteredIssues, q);
   const sorted     = sortResults(results, sortMode);
-  const sCases     = dedupeCases(sorted.filter(i => !!i.caseId));
-  const sReports   = sorted.filter(i => !i.caseId);
+  const sCasesAll  = dedupeCases(sorted.filter(i => !!i.caseId));
+  const sReportsAll = sorted.filter(i => !i.caseId);
+  const { visible: sCases, hasMore: hasMoreCases, loadMore: loadMoreCases } = useInfiniteSlice(sCasesAll, q);
+  const { visible: sReports, hasMore: hasMoreReports, loadMore: loadMoreReports } = useInfiniteSlice(sReportsAll, q);
   const latestNear = filteredIssues.filter(i => i.city === 'Chennai' && i.km < 3 && i.stage !== 'rejected').sort((a, b) => b.created - a.created).slice(0, 8);
   const hasTagOrQuery = !!q || !!f.tag;
   const showIdle   = !hasTagOrQuery;
@@ -142,26 +173,28 @@ export function DesktopSearch({ issues, f, onFilterChange, onOpen, onEdit, onFil
       {showRes && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sorted.length} results</span>
-          {sCases.length > 0 && (
+          {sCasesAll.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ font: "400 18px/1 'DM Serif Display',serif", letterSpacing: '-.02em' }}>Cases</span>
-                <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sCases.length}</span>
+                <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sCasesAll.length}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(360px,1fr))', gap: 12 }}>
                 {sCases.map(i => <CaseCard key={i.id} issue={i} onOpen={onOpen} />)}
               </div>
+              <LoadMoreSentinel hasMore={hasMoreCases} onLoadMore={loadMoreCases} />
             </div>
           )}
-          {sReports.length > 0 && (
+          {sReportsAll.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ font: "400 18px/1 'DM Serif Display',serif", letterSpacing: '-.02em' }}>Reports</span>
-                <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sReports.length}</span>
+                <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sReportsAll.length}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
                 {sReports.map(i => <TileCard key={i.id} issue={i} onOpen={onOpen} onEdit={onEdit} />)}
               </div>
+              <LoadMoreSentinel hasMore={hasMoreReports} onLoadMore={loadMoreReports} />
             </div>
           )}
         </div>

@@ -110,6 +110,17 @@ interface AppCtx {
   setNearbyListScroll: (v: number) => void;
   nearbyMapCamera: MapCamera | null;
   setNearbyMapCamera: (c: MapCamera) => void;
+
+  // Same idea for Search (query/sort/scroll) and Feed (scroll) — both fully
+  // unmount on navigating to an issue and back too.
+  searchQuery: string;
+  setSearchQuery: (v: string) => void;
+  searchSortMode: string;
+  setSearchSortMode: (v: string) => void;
+  searchScroll: number;
+  setSearchScroll: (v: number) => void;
+  feedScroll: number;
+  setFeedScroll: (v: number) => void;
 }
 
 const Ctx = createContext<AppCtx | null>(null);
@@ -159,6 +170,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [nearbyListOpen, setNearbyListOpen] = useState(true);
   const [nearbyListScroll, setNearbyListScroll] = useState(0);
   const [nearbyMapCamera, setNearbyMapCamera] = useState<MapCamera | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchSortMode, setSearchSortMode] = useState('relevant');
+  const [searchScroll, setSearchScroll] = useState(0);
+  const [feedScroll, setFeedScroll] = useState(0);
 
   const meInitials = useMemo(() => me.name.split(' ').filter(Boolean).map(s => s[0]).join(''), [me.name]);
   // Signed in AND has finished the onboarding wizard (Aadhaar + profile) —
@@ -348,6 +363,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     nearbyListOpen, setNearbyListOpen,
     nearbyListScroll, setNearbyListScroll,
     nearbyMapCamera, setNearbyMapCamera,
+    searchQuery, setSearchQuery, searchSortMode, setSearchSortMode, searchScroll, setSearchScroll,
+    feedScroll, setFeedScroll,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
