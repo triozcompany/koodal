@@ -1,36 +1,41 @@
 'use server';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { CATS, CITY, TAGS } from '@/lib/domain/constants';
-import type { Issue } from '@/lib/domain/types';
-
-const SCENES = {
-  sewage: { cat: 'water', sev: 'critical', label: 'Sewage overflow', title: 'Sewage overflowing onto the road', size: '~15 m stretch', risk: 'Health hazard · bus stop 30 m', street: '100 Feet Rd, Vijayanagar', x: 48, y: 47, dept: 'Water & Sewerage' },
-  pothole: { cat: 'road', sev: 'high', label: 'Pothole', title: 'Deep pothole on the carriageway', size: '~1.1 × 0.7 m', risk: 'Two-wheeler route · signal 40 m', street: 'Taramani Link Rd', x: 58, y: 40, dept: 'Roads & Bridges' },
-  garbage: { cat: 'garbage', sev: 'high', label: 'Garbage dump', title: 'Uncollected garbage heap', size: '~3 m² heap', risk: 'Near market · stray dogs', street: 'Velachery Main Rd', x: 41, y: 66, dept: 'Solid Waste Mgmt' },
-  light: { cat: 'light', sev: 'medium', label: 'Streetlight out', title: 'Streetlights not working', size: '3 poles dark', risk: 'Women walk here after work', street: 'Balaji Nagar 2nd St', x: 74, y: 70, dept: 'Electrical' },
-} as const;
-
-type SceneKey = keyof typeof SCENES;
+import { CATS, TAGS } from '@/lib/domain/constants';
+import { CAT_MOCK, deptFor } from '@/lib/domain/analyze';
+import { projectToFakeMap } from '@/lib/domain/geo';
+import type { Category, Issue } from '@/lib/domain/types';
 
 function ini(name: string) {
   return name.split(' ').map(s => s[0]).join('');
 }
 
 export async function submitReport(opts: {
-  scene: SceneKey;
+  cat: Category;
   anon: boolean;
   text: string;
   tags: string[];
   photos: number;
   by: string;
+  uid: string;
+  photoUrls?: string[];
+  icon?: string;
+  title: string;
+  lat: number;
+  lng: number;
+  address: string;
+  city?: string;
+  area?: string;
 }) {
-  const sc = SCENES[opts.scene];
+  const sc = CAT_MOCK[opts.cat];
   const now = Date.now();
   const who = opts.anon ? 'Anonymous' : opts.by;
   const initials = opts.anon ? 'AN' : ini(opts.by);
-  const tags = opts.tags.length ? opts.tags : [...(TAGS[sc.cat as keyof typeof TAGS] ?? []).slice(0, 2), 'velachery'];
-  const summary = `${sc.label} at ${sc.street}, Velachery. ${sc.risk}.`;
+  const tags = opts.tags.length ? opts.tags : [...(TAGS[opts.cat] ?? []).slice(0, 2), 'velachery'];
+  const { x, y } = projectToFakeMap(opts.lat, opts.lng);
+  const city = opts.city || 'Chennai';
+  const area = opts.area || 'Velachery';
+  const summary = `${sc.label} at ${opts.address}. ${sc.risk}.`;
 
   const counterRef = adminDb.doc('counters/issue');
 
@@ -43,23 +48,28 @@ export async function submitReport(opts: {
     const issueRef = adminDb.doc(`issues/${issueId}`);
     const issue: Issue = {
       id: issueId,
-      cat: sc.cat,
+      uid: opts.uid,
+      cat: opts.cat,
+      // omit when unset — Firestore rejects undefined
+      ...(opts.icon && opts.icon !== CATS[opts.cat].icon ? { icon: opts.icon } : {}),
       sev: sc.sev,
-      city: 'Chennai',
-      area: 'Velachery',
-      street: sc.street,
-      title: sc.title,
+      city,
+      area,
+      street: opts.address,
+      title: opts.title,
       stage: 'reported',
       sup: 1,
       conf: 24,
       created: now,
-      x: sc.x,
-      y: sc.y,
+      x,
+      y,
+      lat: opts.lat,
+      lng: opts.lng,
       km: 0.1,
       anon: opts.anon,
       mine: true,
       by: who,
-      dept: sc.dept,
+      dept: deptFor(opts.cat),
       summary,
       voice: null,
       text: opts.text,
@@ -79,9 +89,10 @@ export async function submitReport(opts: {
       valNo: 0,
       evidence: Array.from({ length: Math.max(1, opts.photos) }, (_, k) => ({
         by: initials,
-        uid: 'me',
+        uid: opts.uid,
         ts: now + k,
         kind: 'initial' as const,
+        ...(opts.photoUrls?.[k] ? { url: opts.photoUrls[k] } : {}),
       })),
       events: [{
         ts: now,
@@ -102,19 +113,22 @@ export async function submitReport(opts: {
 
 export async function joinIssue(opts: {
   joinId: string;
-  scene: SceneKey;
+  cat: Category;
   anon: boolean;
   text: string;
   tags: string[];
   photos: number;
   by: string;
   score: number;
+  uid: string;
+  photoUrls?: string[];
 }) {
-  const sc = SCENES[opts.scene];
+  const sc = CAT_MOCK[opts.cat];
   const now = Date.now();
   const who = opts.anon ? 'Anonymous' : opts.by;
   const initials = opts.anon ? 'AN' : ini(opts.by);
   const issueRef = adminDb.doc(`issues/${opts.joinId}`);
+  const userRef = adminDb.doc(`users/${opts.uid}`);
 
   await adminDb.runTransaction(async tx => {
     const snap = await tx.get(issueRef);
@@ -122,9 +136,10 @@ export async function joinIssue(opts: {
     const data = snap.data()!;
     const newEvidence = Array.from({ length: Math.max(1, opts.photos) }, (_, k) => ({
       by: initials,
-      uid: 'me',
+      uid: opts.uid,
       ts: now + k,
       kind: 'initial' as const,
+      ...(opts.photoUrls?.[k] ? { url: opts.photoUrls[k] } : {}),
     }));
     const mergeEntry = {
       by: who,
@@ -144,6 +159,7 @@ export async function joinIssue(opts: {
       kind: 'citizen',
       photo: '',
     };
+    tx.set(userRef, { votes: { [opts.joinId]: 'up' } }, { merge: true });
     tx.update(issueRef, {
       sup: newSup,
       conf: newConf,

@@ -1,39 +1,21 @@
-import type { SceneKey } from './analyze';
-
-/** A simulated photo in the report flow — matches the app-wide convention of
- * styled placeholder blocks instead of real uploaded images (see PhotosScreen,
- * DetailScreen's mosaic, Feed's carousel — none of them store real image bytes). */
+/** A photo captured in the report flow. `dataUrl` is a local, compressed
+ * preview (see lib/local/localPhoto.ts) present from capture until submit —
+ * nothing is uploaded to Cloudinary yet at that point. `url` is only ever
+ * set once the real upload happens at submit time (see AppShell's
+ * doPostNew/doJoin); `icon` is a generic placeholder glyph, shown only in
+ * the brief gap before `dataUrl`/`url` itself renders. */
 export interface Shot {
   id: string;
   icon: string;
   ts: number;
+  dataUrl?: string;
+  url?: string;
 }
 
 export const MAX_SHOTS = 5;
 
-export const SCENE_ICONS: Record<SceneKey, string> = {
-  sewage: 'ph-drop',
-  pothole: 'ph-road-horizon',
-  garbage: 'ph-trash',
-  light: 'ph-lightbulb',
-};
-
-export const SCENE_LABELS: Record<SceneKey, string> = {
-  sewage: 'Sewage overflow',
-  pothole: 'Pothole',
-  garbage: 'Garbage dump',
-  light: 'Streetlight out',
-};
-
-export const SCENE_STREETS: Record<SceneKey, string> = {
-  sewage: '100 Feet Rd, Vijayanagar',
-  pothole: 'Taramani Link Rd',
-  garbage: 'Velachery Main Rd',
-  light: 'Balaji Nagar 2nd St',
-};
-
-export function newShot(scene: SceneKey): Shot {
-  return { id: crypto.randomUUID(), icon: SCENE_ICONS[scene], ts: Date.now() };
+export function newShot(dataUrl: string): Shot {
+  return { id: crypto.randomUUID(), icon: 'ph-image', ts: Date.now(), dataUrl };
 }
 
 /** The goal-gradient bar has 4 segments mapping to the 4 real flow steps —
@@ -56,7 +38,7 @@ export interface ReportHint {
 }
 
 export function getReportHint(hasShot: boolean, hasDesc: boolean, hasTag: boolean): ReportHint {
-  if (!hasShot) return { icon: 'ph-map-pin', text: 'Location pinned · add a photo', ready: false };
+  if (!hasShot) return { icon: 'ph-camera', text: 'Add a photo to begin', ready: false };
   if (!hasDesc) return { icon: 'ph-check', text: "Photo added · say what's wrong", ready: false };
   if (!hasTag) return { icon: 'ph-lightning', text: 'Almost there · add a tag or slide to post', ready: true };
   return { icon: 'ph-flag-checkered', text: 'All set · just slide to post', ready: true };

@@ -1,50 +1,89 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { ME } from '@/lib/domain/constants';
-import type { SceneKey } from '@/lib/domain/analyze';
-import { IdSheet } from '../components/IdSheet';
+import { useApp } from '@/lib/app-context';
+import { fileToDataUrl } from '@/lib/local/localPhoto';
+import { reverseGeocode, type GeocodeResult } from '@/lib/geo/nominatim';
+import { CAT_MOCK } from '@/lib/domain/analyze';
+import type { Category } from '@/lib/domain/types';
 import { ReportMediaViewer } from '../components/ReportMediaViewer';
 import { GoalGradientBar } from '../components/GoalGradientBar';
-import { SCENE_ICONS, SCENE_LABELS, SCENE_STREETS, calcReportSegments, getReportHint } from '@/lib/domain/report-draft';
+import { LocationPicker } from '../components/LocationPicker';
+import { Tooltip } from '../components/Tooltip';
+import { CATS, ICON_CHOICES } from '@/lib/domain/constants';
+import { calcReportSegments, getReportHint } from '@/lib/domain/report-draft';
 import type { Shot } from '@/lib/domain/report-draft';
 
 const WAVE = [10, 18, 26, 14, 22, 28, 12, 20, 26, 16, 8, 22, 18, 26, 12, 20, 14, 24, 10, 18];
 
 interface Props {
-  scene: SceneKey;
+  cat: Category;
+  icon: string | null;
   anon: boolean;
+  title: string;
   desc: string;
   tags: string[];
   shots: Shot[];
-  meVerified: boolean;
+  location: GeocodeResult | null;
   mob: boolean;
   onClose: () => void;
-  onScene: (s: SceneKey) => void;
+  onIcon: (i: string) => void;
   onAnon: (a: boolean) => void;
+  onTitle: (t: string) => void;
   onDesc: (d: string) => void;
   onTags: (t: string[]) => void;
-  onAddShot: () => void;
+  onLocationPicked: (loc: GeocodeResult) => void;
+  onAddShot: (url: string) => void;
   onRemoveShot: (id: string) => void;
   onRestoreShot: (shot: Shot, index: number) => void;
   onRetakeAll: () => void;
   onSlideSubmit: () => void;
-  onVerified: () => void;
 }
 
 export function ReportScreen({
-  scene, anon, desc, tags, shots, meVerified, mob,
-  onClose, onScene, onAnon, onDesc, onTags,
+  cat, icon, anon, title, desc, tags, shots, location, mob,
+  onClose, onIcon, onAnon, onTitle, onDesc, onTags, onLocationPicked,
   onAddShot, onRemoveShot, onRestoreShot, onRetakeAll,
-  onSlideSubmit, onVerified,
+  onSlideSubmit,
 }: Props) {
+  const { me } = useApp();
+  const [locOpen, setLocOpen] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
+  const autoDetectedRef = useRef(false);
+
+  // Silently try to auto-detect location once, as soon as the report flow
+  // opens — the tappable location card below is the fallback/manual path
+  // (search or pan a real map) for when this fails, is denied, or the user
+  // just wants to pick somewhere else.
+  useEffect(() => {
+    if (location || autoDetectedRef.current) return;
+    autoDetectedRef.current = true;
+    if (!navigator.geolocation) {
+      setLocError('Location isn’t available on this device — tap to search or set it on the map.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const r = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+        if (r) onLocationPicked(r);
+        else setLocError("Couldn't figure out the address — tap to search or set it on the map.");
+      },
+      err => {
+        // GeolocationPositionError's code/message are inherited getters, not
+        // own enumerable properties, so logging the raw object prints "{}".
+        console.error(`auto geolocation failed: [${err.code}] ${err.message}`);
+        setLocError("Couldn't detect your location — tap to search or set it on the map.");
+      },
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const captured = shots.length > 0;
   const [flash, setFlash] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [descMode, setDescMode] = useState<'text' | 'voice'>('text');
   const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'done'>('idle');
   const [tagDraft, setTagDraft] = useState('');
-  const [idOpen, setIdOpen] = useState(false);
-  const [idStep, setIdStep] = useState(0);
-  const [otp, setOtp] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [pendingUndo, setPendingUndo] = useState<{ shot: Shot; index: number } | null>(null);
@@ -93,8 +132,8 @@ export function ReportScreen({
 
   useEffect(() => () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); }, []);
 
-  const meInitials = ME.name.split(' ').map(s => s[0]).join('');
-  const meFirst = ME.name.split(' ')[0];
+  const meInitials = me.name.split(' ').map(s => s[0]).join('');
+  const meFirst = me.name.split(' ')[0];
 
   // Goal-gradient progress — segments 1+2 (Capture/Report) are this screen's
   // responsibility; segments 3+4 (Analyze/Match) stay at 0 until the citizen
@@ -106,6 +145,7 @@ export function ReportScreen({
   const pct = Math.round(((seg1 + seg2) / 4) * 100);
   const hint = getReportHint(captured, hasDesc, hasTag);
   const barColor = hint.ready ? 'var(--cp-leaf)' : 'var(--cp-marigold)';
+  const canSubmit = hint.ready && title.trim().length > 0 && !!location;
 
   // Light haptic tick each time a segment completes (rising edge only)
   const prevSeg = useRef({ shot: captured, desc: hasDesc, tag: hasTag });
@@ -120,11 +160,28 @@ export function ReportScreen({
   }, [captured, hasDesc, hasTag]);
 
   const doCapture = () => {
-    setFlash(true);
-    setTimeout(() => {
-      setFlash(false);
-      onAddShot();
-    }, 300);
+    if (uploading) return;
+    fileInputRef.current?.click();
+  };
+
+  // No network call here — the photo is compressed and kept locally (in
+  // localStorage) until the report is actually submitted. See AppShell's
+  // doPostNew/doJoin for where the real Cloudinary upload happens.
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setFlash(true);
+      setTimeout(() => setFlash(false), 250);
+      onAddShot(dataUrl);
+    } catch (err) {
+      console.error('fileToDataUrl failed:', err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleRemoveShot = (id: string) => {
@@ -167,26 +224,8 @@ export function ReportScreen({
 
   const voiceTag = voiceState === 'idle' ? '' : voiceState === 'recording' ? 'Listening…' : 'Done';
 
-  const openId = () => {
-    setIdOpen(true);
-    setIdStep(0);
-    setOtp(0);
-  };
-
-  const idNext = () => {
-    if (idStep === 0) {
-      setIdStep(1);
-      setOtp(0);
-      [1, 2, 3, 4].forEach(k => setTimeout(() => setOtp(k), 300 + k * 220));
-    } else if (idStep === 1 && otp >= 4) {
-      setIdStep(2);
-      onVerified();
-      setTimeout(() => setIdOpen(false), 700);
-    }
-  };
-
   const onSlideDown = (e: React.PointerEvent) => {
-    if (!hint.ready) return;
+    if (!canSubmit) return;
     e.preventDefault();
     const maxDrag = maxDragRef.current;
     slideStartX.current = e.clientX - slideXRef.current;
@@ -233,6 +272,7 @@ export function ReportScreen({
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: '#0c0d10', color: '#fff', animation: 'cp-in .3s ease-out both', display: 'flex', flexDirection: 'column' }}>
+      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFileChange} />
 
       {/* Sticky top bar — close/GPS row, goal-gradient progress, hint+percent */}
       <div style={{
@@ -243,17 +283,21 @@ export function ReportScreen({
         transition: 'background .25s, backdrop-filter .25s',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px 0' }}>
-          <button aria-label="Close report" onClick={onClose} style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18 }}>
-            <i className="ph-bold ph-x"></i>
-          </button>
+          <Tooltip label="Close report">
+            <button aria-label="Close report" onClick={onClose} style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18 }}>
+              <i className="ph-bold ph-x"></i>
+            </button>
+          </Tooltip>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, height: 30, padding: '0 11px', borderRadius: 15, background: 'rgba(255,255,255,.14)', font: '600 12px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}>
             <i className="ph-fill ph-navigation-arrow" style={{ color: 'var(--cp-marigold)' }}></i>
             GPS ±8 m
           </span>
           {mob ? (
-            <button aria-label="Toggle flash" style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18 }}>
-              <i className="ph-bold ph-lightning"></i>
-            </button>
+            <Tooltip label="Toggle flash">
+              <button aria-label="Toggle flash" style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18 }}>
+                <i className="ph-bold ph-lightning"></i>
+              </button>
+            </Tooltip>
           ) : (
             <span style={{ width: 42 }} />
           )}
@@ -293,36 +337,24 @@ export function ReportScreen({
                 Point at the issue
               </div>
               <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {(Object.keys(SCENE_ICONS) as SceneKey[]).map(k => (
-                    <button
-                      key={k}
-                      aria-label={`Scene: ${SCENE_LABELS[k]}`}
-                      onClick={() => onScene(k)}
-                      style={{
-                        width: 54, height: 54, borderRadius: '50%',
-                        border: `2px solid ${k === scene ? 'rgba(255,255,255,.7)' : '#2a2c33'}`,
-                        background: k === scene
-                          ? 'oklch(0.63 0.19 32 / .35)'
-                          : 'repeating-linear-gradient(135deg,#23252b 0 6px,#1b1d22 6px 12px)',
-                        display: 'grid', placeItems: 'center', color: k === scene ? 'var(--cp-marigold)' : '#9a9ca6',
-                        cursor: 'pointer', fontSize: 19, transition: 'all .2s',
-                      }}
-                    >
-                      <i className={`ph-bold ${SCENE_ICONS[k]}`}></i>
-                    </button>
-                  ))}
-                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 56 }}>
-                  <button aria-label="Choose from gallery" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', fontSize: 20, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
-                    <i className="ph-bold ph-images"></i>
-                  </button>
-                  <button aria-label="Capture photo" onClick={doCapture} style={{ width: 80, height: 80, borderRadius: '50%', border: '5px solid #fff', background: 'transparent', padding: 5, cursor: 'pointer' }}>
-                    <span style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%', background: 'oklch(0.63 0.19 32)' }} />
-                  </button>
-                  <button aria-label="Switch camera" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', fontSize: 20, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
-                    <i className="ph-bold ph-camera-rotate"></i>
-                  </button>
+                  <Tooltip label="Choose from gallery">
+                    <button aria-label="Choose from gallery" onClick={doCapture} style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', fontSize: 20, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+                      <i className="ph-bold ph-images"></i>
+                    </button>
+                  </Tooltip>
+                  <Tooltip label="Capture photo">
+                    <button aria-label="Capture photo" onClick={doCapture} disabled={uploading} style={{ width: 80, height: 80, borderRadius: '50%', border: '5px solid #fff', background: 'transparent', padding: 5, cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+                      {uploading
+                        ? <span style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%', border: '3px solid rgba(255,255,255,.35)', borderTopColor: '#fff', animation: 'cp-spin .7s linear infinite' }} />
+                        : <span style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%', background: 'oklch(0.63 0.19 32)' }} />}
+                    </button>
+                  </Tooltip>
+                  <Tooltip label="Switch camera">
+                    <button aria-label="Switch camera" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', fontSize: 20, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+                      <i className="ph-bold ph-camera-rotate"></i>
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
             </>
@@ -337,7 +369,7 @@ export function ReportScreen({
                 <span style={{ font: "400 23px/1.1 'DM Serif Display',serif" }}>Upload photos or a short video</span>
                 <span style={{ font: '500 13px/1.4 Outfit,sans-serif', color: '#9a9ca6', maxWidth: 420 }}>Drag files here. Location is read from the photo, or you can set it next.</span>
               </div>
-              <button onClick={doCapture} style={{ height: 48, padding: '0 22px', borderRadius: 999, border: 'none', background: '#fff', color: '#0c0d10', font: '600 14px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .12s' }}>
+              <button data-glare="1" onClick={doCapture} style={{ height: 48, padding: '0 22px', borderRadius: 999, border: 'none', background: '#fff', color: '#0c0d10', font: '600 14px/1 Outfit,sans-serif', letterSpacing: '.01em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'transform .12s' }}>
                 Choose from computer
               </button>
             </div>
@@ -347,11 +379,11 @@ export function ReportScreen({
             <div style={{ position: 'absolute', inset: 0 }}>
               <ReportMediaViewer
                 shots={shots}
-                aiHint={`${SCENE_LABELS[scene]} spotted`}
-                onAdd={onAddShot}
+                aiHint={`${CATS[cat].l} spotted`}
+                onAdd={doCapture}
                 onRemove={handleRemoveShot}
                 onRetakeAll={onRetakeAll}
-                street={SCENE_STREETS[scene]}
+                street={location?.address || 'Locating…'}
               />
             </div>
           )}
@@ -363,16 +395,35 @@ export function ReportScreen({
         {captured && (
           <div style={{ padding: `14px ${cPadX} 24px`, display: 'flex', flexDirection: 'column', gap: 12, animation: 'cp-row .35s ease-out both', boxSizing: 'border-box' }}>
 
-            {/* Location card */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: 10, borderRadius: 16, background: '#1a1c21', border: '1.5px solid #2a2c33' }}>
+            {/* Title */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, borderRadius: 16, background: '#1a1c21', border: '1.5px solid #2a2c33' }}>
+              <span style={{ font: '600 12px/1 Outfit,sans-serif', color: '#b9bbc4' }}>Title</span>
+              <input
+                value={title}
+                onChange={e => onTitle(e.target.value)}
+                placeholder="What's the issue? e.g. Deep pothole outside the bus stop"
+                style={{ height: 26, padding: 0, border: 'none', outline: 'none', background: 'transparent', color: '#fff', font: '600 15px/1.3 Outfit,sans-serif' }}
+              />
+            </div>
+
+            {/* Location card — tappable, opens the map picker */}
+            <button
+              onClick={() => setLocOpen(true)}
+              style={{ display: 'flex', gap: 10, alignItems: 'center', padding: 10, borderRadius: 16, background: '#1a1c21', border: '1.5px solid #2a2c33', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+            >
               <div style={{ width: 38, height: 38, flex: 'none', borderRadius: 11, background: 'oklch(0.63 0.19 32)', display: 'grid', placeItems: 'center', fontSize: 19 }}>
                 <i className="ph-fill ph-map-pin"></i>
               </div>
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ font: '600 13px/1.1 Outfit,sans-serif' }}>{SCENE_STREETS[scene]}</span>
-                <span style={{ font: '500 11.5px/1 Outfit,sans-serif', color: '#8d8f99' }}>Velachery, Chennai 600042</span>
+                <span style={{ font: '600 13px/1.1 Outfit,sans-serif', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {location?.address || (locError ? 'Location not set' : 'Detecting your location…')}
+                </span>
+                <span style={{ font: '500 11.5px/1 Outfit,sans-serif', color: locError ? 'var(--cp-pulse)' : '#8d8f99' }}>
+                  {location ? 'Tap to change' : locError || 'Or tap to search / set it on the map'}
+                </span>
               </div>
-            </div>
+              <i className="ph-bold ph-caret-right" style={{ color: '#8d8f99', fontSize: 15, flexShrink: 0 }} />
+            </button>
 
             {/* Describe */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 12, borderRadius: 16, background: '#1a1c21', border: '1.5px solid #2a2c33' }}>
@@ -413,21 +464,33 @@ export function ReportScreen({
                   {voiceState === 'done' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '0 4px' }}>
                       <span style={{ font: '500 13px/1.35 "Noto Sans Tamil",Outfit,sans-serif' }}>
-                        {scene === 'sewage' ? '"Bus stand pakkathula drainage overflow, romba naala ippadi dhaan irukku"'
-                          : scene === 'pothole' ? '"ரொம்ப பெரிய பள்ளம், நைட்ல பைக் விழுது"'
-                          : scene === 'garbage' ? '"Three days-a garbage edukkala, smell romba jaasthi"'
-                          : '"Street full-a dark, ladies nadakka bayapadranga"'}
+                        {CAT_MOCK[cat].voice.text}
                       </span>
                       <span style={{ font: '500 12px/1.3 Outfit,sans-serif', color: '#8d8f99' }}>
-                        {scene === 'sewage' ? 'Drainage overflowing near the bus stand, it has been like this for days'
-                          : scene === 'pothole' ? 'Very big pit, bikes fall at night'
-                          : scene === 'garbage' ? 'Garbage not collected for three days, the smell is terrible'
-                          : 'The street is fully dark, women are afraid to walk'}
+                        {CAT_MOCK[cat].voice.en}
                       </span>
                     </div>
                   )}
                 </>
               )}
+            </div>
+
+            {/* Icon */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 12, borderRadius: 16, background: '#1a1c21', border: '1.5px solid #2a2c33' }}>
+              <span style={{ font: '600 12px/1 Outfit,sans-serif', color: '#b9bbc4' }}>Icon</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {ICON_CHOICES.map(c => {
+                  const on = icon ? icon === c.icon : CATS[cat].icon === c.icon;
+                  return (
+                    <Tooltip key={c.icon} label={c.label}>
+                      <button aria-label={c.label} aria-pressed={on} onClick={() => onIcon(c.icon)}
+                        style={{ width: 44, height: 44, borderRadius: 12, border: `2px solid ${on ? 'rgba(255,255,255,.7)' : '#2a2c33'}`, background: on ? 'rgba(255,255,255,.14)' : '#0c0d10', color: on ? 'var(--cp-marigold)' : '#9a9ca6', cursor: 'pointer', fontSize: 20, display: 'grid', placeItems: 'center' }}>
+                        <i className={`ph-bold ${c.icon}`}></i>
+                      </button>
+                    </Tooltip>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Tags */}
@@ -450,16 +513,18 @@ export function ReportScreen({
                   placeholder="Add your own tag"
                   style={{ flex: 1, minWidth: 0, height: 40, padding: '0 12px', borderRadius: 11, border: '1.5px solid #2a2c33', background: '#0c0d10', color: '#fff', font: '500 13px/1 Outfit,sans-serif', outline: 'none' }}
                 />
-                <button aria-label="Add tag" onClick={addTag} style={{ width: 40, height: 40, flex: 'none', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.14)', color: '#fff', cursor: 'pointer', fontSize: 17 }}>
-                  <i className="ph-bold ph-plus"></i>
-                </button>
+                <Tooltip label="Add tag">
+                  <button aria-label="Add tag" onClick={addTag} style={{ width: 40, height: 40, flex: 'none', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.14)', color: '#fff', cursor: 'pointer', fontSize: 17 }}>
+                    <i className="ph-bold ph-plus"></i>
+                  </button>
+                </Tooltip>
               </div>
             </div>
 
             {/* Identity toggle */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: 4, borderRadius: 16, background: '#1a1c21', border: '1.5px solid #2a2c33' }}>
               <button
-                onClick={() => { if (!meVerified) openId(); else onAnon(false); }}
+                onClick={() => onAnon(false)}
                 style={{ height: 48, borderRadius: 999, border: 'none', background: !anon ? 'rgba(255,255,255,.16)' : 'transparent', color: '#fff', font: '600 12.5px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}
               >
                 <span style={{ width: 26, height: 26, borderRadius: 8, background: 'oklch(0.82 0.15 75)', color: 'oklch(0.22 0.03 270)', font: '400 11px/26px "DM Serif Display",serif', textAlign: 'center' }}>{meInitials}</span>
@@ -482,12 +547,12 @@ export function ReportScreen({
             <div ref={setTrackEl} style={{ position: 'relative', height: 64, borderRadius: 20, background: '#1a1c21', overflow: 'hidden', touchAction: 'none' }}>
               <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: slideFillW, background: 'oklch(0.63 0.19 32 / .28)' }} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, paddingLeft: 40, font: '400 15px/1 "DM Serif Display",serif', opacity: slideTextO, color: '#d8d9de', pointerEvents: 'none' }}>
-                {hint.ready ? 'Slide to report' : 'Add a photo and description first'}<i className="ph-bold ph-caret-double-right"></i>
+                {!hint.ready ? 'Add a photo and description first' : !title.trim() ? 'Give it a title' : !location ? 'Set a location' : 'Slide to report'}<i className="ph-bold ph-caret-double-right"></i>
               </div>
               <div
                 onPointerDown={onSlideDown}
-                aria-disabled={!hint.ready}
-                style={{ position: 'absolute', left: 4, top: 4, width: 56, height: 56, borderRadius: 16, background: 'oklch(0.63 0.19 32)', display: 'grid', placeItems: 'center', fontSize: 24, cursor: hint.ready ? 'grab' : 'not-allowed', opacity: hint.ready ? 1 : 0.45, transform: `translateX(${slideX}px)`, transition: slideTrans, boxShadow: '0 4px 14px rgba(0,0,0,.35)', touchAction: 'none' }}
+                aria-disabled={!canSubmit}
+                style={{ position: 'absolute', left: 4, top: 4, width: 56, height: 56, borderRadius: 16, background: 'oklch(0.63 0.19 32)', display: 'grid', placeItems: 'center', fontSize: 24, cursor: canSubmit ? 'grab' : 'not-allowed', opacity: canSubmit ? 1 : 0.45, transform: `translateX(${slideX}px)`, transition: slideTrans, boxShadow: '0 4px 14px rgba(0,0,0,.35)', touchAction: 'none' }}
               >
                 <i className="ph-bold ph-arrow-right"></i>
               </div>
@@ -506,11 +571,12 @@ export function ReportScreen({
         </div>
       )}
 
-      {/* Identity sheet overlay */}
-      {idOpen && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 90 }}>
-          <IdSheet step={idStep} otp={otp} onNext={idNext} onClose={() => setIdOpen(false)} />
-        </div>
+      {locOpen && (
+        <LocationPicker
+          initial={location}
+          onConfirm={loc => { onLocationPicked(loc); setLocOpen(false); }}
+          onClose={() => setLocOpen(false)}
+        />
       )}
     </div>
   );

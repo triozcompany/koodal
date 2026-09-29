@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import type { Analysis } from '@/lib/domain/analyze';
 import { GoalGradientBar } from '../components/GoalGradientBar';
+import { Tooltip } from '../components/Tooltip';
 
 const SEVL: Record<string, [string, string]> = {
   critical: ['Critical', 'var(--cp-pulse-soft)'],
@@ -17,9 +18,12 @@ interface Props {
   mob: boolean;
   forceComplete?: boolean;
   photoCount?: number;
+  submitPhase?: 'idle' | 'uploading' | 'saving';
+  submitError?: string | null;
 }
 
-export function AiScreen({ an, onNext, onClose, mob, forceComplete, photoCount = 1 }: Props) {
+export function AiScreen({ an, onNext, onClose, mob, forceComplete, photoCount = 1, submitPhase = 'idle', submitError }: Props) {
+  const submitting = submitPhase !== 'idle';
   const [aiStep, setAiStep] = useState(forceComplete ? 6 : 0);
 
   useEffect(() => {
@@ -52,7 +56,12 @@ export function AiScreen({ an, onNext, onClose, mob, forceComplete, photoCount =
   const aiScanning = aiStep < 2;
   const aiBox = aiStep >= 1;
 
-  const aiBtnLabel = an.strong
+  // Only the no-matches path calls doPostNew directly from this button (a
+  // match instead moves on to SimilarScreen) — submitPhase only applies here.
+  const directSubmit = an.matches.length === 0;
+  const aiBtnLabel = directSubmit && submitting
+    ? (submitPhase === 'uploading' ? 'Uploading photos…' : 'Saving…')
+    : an.strong
     ? '1 match nearby · See it'
     : an.matches.length
     ? 'Similar nearby · Compare'
@@ -60,6 +69,7 @@ export function AiScreen({ an, onNext, onClose, mob, forceComplete, photoCount =
   const aiBtnIcon = an.matches.length ? 'ph-intersect' : 'ph-paper-plane-tilt';
   const aiBtnBg = an.matches.length ? 'var(--cp-marigold)' : 'var(--cp-pulse)';
   const aiBtnFg = an.matches.length ? 'var(--cp-on-marigold)' : '#fff';
+  const aiBtnDisabled = directSubmit && submitting;
 
   // Single layout for both mobile and desktop
   return (
@@ -70,9 +80,11 @@ export function AiScreen({ an, onNext, onClose, mob, forceComplete, photoCount =
           <i className="ph-fill ph-sparkle"></i>
         </div>
         <div style={{ flex: 1, font: '400 19px/1 "DM Serif Display",serif', letterSpacing: '-.02em' }}>{aiTitle}</div>
-        <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid var(--cp-line)', background: 'var(--cp-surface-2)', color: 'var(--cp-ink)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>
-          <i className="ph-bold ph-x"></i>
-        </button>
+        <Tooltip label="Close">
+          <button aria-label="Close" onClick={onClose} disabled={submitting} style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid var(--cp-line)', background: 'var(--cp-surface-2)', color: 'var(--cp-ink)', display: 'grid', placeItems: 'center', cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.5 : 1, fontSize: 16, flexShrink: 0 }}>
+            <i className="ph-bold ph-x"></i>
+          </button>
+        </Tooltip>
       </div>
 
       <GoalGradientBar
@@ -121,12 +133,19 @@ export function AiScreen({ an, onNext, onClose, mob, forceComplete, photoCount =
 
       {/* CTA */}
       {aiDone && (
-        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 28, display: 'flex', gap: 10, animation: 'cp-pop .45s cubic-bezier(.3,1.5,.5,1) both' }}>
-          <button onClick={onClose} style={{ flex: '3 1 0', minWidth: 0, height: 56, borderRadius: 999, border: '1px solid var(--cp-line)', background: 'var(--cp-surface)', color: 'var(--cp-ink)', font: '600 14px/1 Outfit,sans-serif', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={onNext} style={{ flex: '7 1 0', minWidth: 0, height: 56, borderRadius: 999, background: aiBtnBg, color: aiBtnFg, border: '1px solid var(--cp-line)', boxShadow: '0 2px 0 var(--cp-edge),0 8px 14px -10px rgb(0 0 0 / .25)', font: '600 15px/1 Outfit,sans-serif', letterSpacing: '.01em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}>
-            <i className={`ph-bold ${aiBtnIcon}`} style={{ fontSize: 19 }}></i>
-            {aiBtnLabel}
-          </button>
+        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 28, display: 'flex', flexDirection: 'column', gap: 10, animation: 'cp-pop .45s cubic-bezier(.3,1.5,.5,1) both' }}>
+          {submitError && (
+            <span style={{ font: '600 12px/1.4 Outfit,sans-serif', color: 'var(--cp-pulse)', textAlign: 'center' }}>{submitError}</span>
+          )}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={onClose} disabled={submitting} style={{ flex: '3 1 0', minWidth: 0, height: 56, borderRadius: 999, border: '1px solid var(--cp-line)', background: 'var(--cp-surface)', color: 'var(--cp-ink)', font: '600 14px/1 Outfit,sans-serif', cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.5 : 1 }}>Cancel</button>
+            <button data-glare="1" onClick={onNext} disabled={aiBtnDisabled} style={{ flex: '7 1 0', minWidth: 0, height: 56, borderRadius: 999, background: aiBtnBg, color: aiBtnFg, border: '1px solid var(--cp-line)', boxShadow: '0 2px 0 var(--cp-edge),0 8px 14px -10px rgb(0 0 0 / .25)', font: '600 15px/1 Outfit,sans-serif', letterSpacing: '.01em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: aiBtnDisabled ? 'default' : 'pointer', opacity: aiBtnDisabled ? 0.75 : 1 }}>
+              {aiBtnDisabled
+                ? <span style={{ width: 18, height: 18, borderRadius: '50%', border: '2.5px solid rgba(255,255,255,.35)', borderTopColor: '#fff', animation: 'cp-spin .7s linear infinite', flexShrink: 0 }} />
+                : <i className={`ph-bold ${aiBtnIcon}`} style={{ fontSize: 19 }}></i>}
+              {aiBtnLabel}
+            </button>
+          </div>
         </div>
       )}
     </div>
