@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { Issue } from '@/lib/domain/types';
 import { ago } from '@/lib/domain/rules';
 import { AVB } from '@/lib/domain/stage-style';
-import { ME } from '@/lib/domain/constants';
+import { useApp } from '@/lib/app-context';
 
 function nameHash(s: string): number {
   let h = 0;
@@ -28,6 +28,7 @@ interface Props {
 const PAGE = 20;
 
 export function CommentsSheet({ issue, mob, desktop = false, onSend, onEditComment, onDeleteComment, onClose }: Props) {
+  const { me } = useApp();
   const [input, setInput]           = useState('');
   const [local, setLocal]           = useState<Array<{ text: string; ts: number }>>([]);
   const [loadedCount, setLoadedCount] = useState(PAGE);
@@ -91,7 +92,7 @@ export function CommentsSheet({ issue, mob, desktop = false, onSend, onEditComme
       )}
       {[...visible].reverse().map((c, i) => {
         const commentId = (c as { id?: string }).id;
-        const isMine = (c as { uid?: string }).uid === ME.uid;
+        const isMine = (c as { uid?: string }).uid === me.uid;
         const canManage = isMine && !!commentId && canEditComments && (onEditComment || onDeleteComment);
         const isEditing = editingId === commentId;
         return (

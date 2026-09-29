@@ -8,7 +8,7 @@ export default function IssueDetailPage() {
   const { issueId } = useParams<{ issueId: string }>();
   const router = useRouter();
   const {
-    issues, mob, meInitials, supported, opposed,
+    issues, mob, me, meInitials, supported, opposed,
     toggleSupport, handleOppose, handleAddEvidence,
     setEditFor, setCommentsFor, setVerifyFor, setCaseInfoFor,
     openIssue, justJoinedId, setJustJoinedId,
@@ -43,12 +43,13 @@ export default function IssueDetailPage() {
       opposed={!!opposed[issue.id]}
       mob={mob}
       meInitials={meInitials}
+      meUid={me.uid}
       confettiFired={confettiFired}
       celebrateOnOpen={celebrateOnOpen}
       onBack={() => router.back()}
       onSupport={() => toggleSupport(issue.id)}
       onOppose={() => handleOppose(issue.id)}
-      onAddEvidence={() => handleAddEvidence(issue.id)}
+      onAddEvidence={(url) => handleAddEvidence(issue.id, url)}
       onEdit={() => setEditFor(issue.id)}
       onComments={() => setCommentsFor(issue.id)}
       onPhotos={() => router.push(`/issues/${issue.id}/evidences`)}

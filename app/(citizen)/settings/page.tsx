@@ -5,7 +5,7 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { me, meInitials, mob, setMe, setVotes, setShowAuth } = useApp();
+  const { me, meInitials, mob, setMe, setVotes, logout } = useApp();
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -14,9 +14,9 @@ export default function SettingsPage() {
         meInitials={meInitials}
         mob={mob}
         setMe={setMe}
-        clearVotes={() => setVotes(() => ({}))}
+        clearVotes={() => { setVotes(() => ({})); setMe({ votes: {} }); }}
         onBack={() => router.push('/profile')}
-        onLogout={() => setShowAuth(true)}
+        onLogout={logout}
       />
     </div>
   );

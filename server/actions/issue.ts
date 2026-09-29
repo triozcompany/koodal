@@ -17,9 +17,10 @@ const CASE_MERGE_SCORE = 85;
  * transaction, using its own post-increment values — not a stale pre-vote read)
  * so "this became an official case" is a real, atomic transition.
  */
-export async function castVote(id: string, dir: 'up' | 'down', prevDir: 'up' | 'down' | null, by: string) {
+export async function castVote(id: string, dir: 'up' | 'down', prevDir: 'up' | 'down' | null, by: string, uid: string) {
   const now = Date.now();
   const issueRef = adminDb.doc(`issues/${id}`);
+  const userRef = adminDb.doc(`users/${uid}`);
 
   return adminDb.runTransaction(async tx => {
     const snap = await tx.get(issueRef);
@@ -118,15 +119,16 @@ export async function castVote(id: string, dir: 'up' | 'down', prevDir: 'up' | '
     updates.events = FieldValue.arrayUnion(...newEvents);
 
     tx.update(issueRef, updates);
+    tx.set(userRef, { votes: { [id]: dir } }, { merge: true });
     if (dupTargetRef && dupTargetUpdate) tx.update(dupTargetRef, dupTargetUpdate);
     return { caseCreated, caseId };
   });
 }
 
-export async function addEvidence(id: string, by: string) {
+export async function addEvidence(id: string, by: string, uid: string, url?: string) {
   const now = Date.now();
   await adminDb.doc(`issues/${id}`).update({
-    evidence: FieldValue.arrayUnion({ id: crypto.randomUUID(), by, uid: 'me', ts: now, kind: 'followup' }),
+    evidence: FieldValue.arrayUnion({ id: crypto.randomUUID(), by, uid, ts: now, kind: 'followup', ...(url ? { url } : {}) }),
     conf: FieldValue.increment(5),
     events: FieldValue.arrayUnion({
       ts: now,
@@ -152,9 +154,9 @@ export async function deleteEvidence(id: string, evidenceId: string) {
   });
 }
 
-export async function addComment(id: string, by: string, text: string) {
+export async function addComment(id: string, by: string, uid: string, text: string) {
   await adminDb.doc(`issues/${id}`).update({
-    comments: FieldValue.arrayUnion({ id: crypto.randomUUID(), by, uid: 'me', text, ts: Date.now() }),
+    comments: FieldValue.arrayUnion({ id: crypto.randomUUID(), by, uid, text, ts: Date.now() }),
   });
 }
 
@@ -187,6 +189,33 @@ export async function deleteComment(id: string, commentId: string) {
   });
 }
 
+/** Editing is only offered client-side to the report's own author, before it
+ * has become an official case — re-checked here so a stale UI (or someone
+ * poking the action directly) can't slip a write through either guard. */
+export async function editReport(id: string, uid: string, title: string, text: string, tags: string[]) {
+  const issueRef = adminDb.doc(`issues/${id}`);
+  await adminDb.runTransaction(async tx => {
+    const snap = await tx.get(issueRef);
+    if (!snap.exists) throw new Error('Issue not found');
+    const data = snap.data()!;
+    if (data.uid !== uid) throw new Error('Not your report');
+    if (data.caseId) throw new Error('Cannot edit — already an official case');
+    tx.update(issueRef, { title, text, tags });
+  });
+}
+
+export async function deleteReport(id: string, uid: string) {
+  const issueRef = adminDb.doc(`issues/${id}`);
+  await adminDb.runTransaction(async tx => {
+    const snap = await tx.get(issueRef);
+    if (!snap.exists) throw new Error('Issue not found');
+    const data = snap.data()!;
+    if (data.uid !== uid) throw new Error('Not your report');
+    if (data.caseId) throw new Error('Cannot delete — already an official case');
+    tx.delete(issueRef);
+  });
+}
+
 export async function validateFix(id: string, yes: boolean, by: string) {
   const field = yes ? 'valYes' : 'valNo';
   const now   = Date.now();
@@ -196,20 +225,37 @@ export async function validateFix(id: string, yes: boolean, by: string) {
     if (!snap.exists) throw new Error('Issue not found');
     const data = snap.data()!;
     const next = (data[field] ?? 0) + 1;
-    const updates: Record<string, unknown> = {
-      [field]: next,
-      events: FieldValue.arrayUnion({
-        ts: now,
-        title: yes ? `${by} confirmed fixed` : `${by} disputed the fix`,
-        sub: '',
-        icon: yes ? 'ph-seal-check' : 'ph-x-circle',
-        kind: yes ? 'closed' : 'reject',
-        photo: '',
-      }),
-    };
-    if (yes && next >= (data.needed ?? 25)) {
+    const needed = data.needed ?? 25;
+    const events: Record<string, unknown>[] = [{
+      ts: now,
+      title: yes ? `${by} confirmed fixed` : `${by} disputed the fix`,
+      sub: '',
+      icon: yes ? 'ph-seal-check' : 'ph-x-circle',
+      kind: yes ? 'closed' : 'reject',
+      photo: '',
+    }];
+    const updates: Record<string, unknown> = { [field]: next };
+    // The Console reads `confirms`/`disputes` for the awaiting-confirmation card and the
+    // citizen list badge, so keep them in step with valYes/valNo. Both counters reset when
+    // the department marks a case fixed again (see markFixed in console-cases.ts).
+    if (data.stage === 'resolved') {
+      if (yes) {
+        const confirms = (data.confirms ?? 0) + 1;
+        updates.confirms = confirms;
+        if (confirms >= needed) updates.stage = 'closed';
+      } else {
+        const disputes = (data.disputes ?? 0) + 1;
+        updates.disputes = disputes;
+        if (disputes >= 3) {
+          updates.stage = 'progress';
+          updates.reopened = (data.reopened ?? 0) + 1;
+          events.push({ ts: now, title: 'Reopened by citizens', sub: `${disputes} citizens said not fixed`, icon: 'ph-arrow-counter-clockwise', kind: 'citizen', photo: '' });
+        }
+      }
+    } else if (yes && next >= needed) {
       updates.stage = 'closed';
     }
+    updates.events = FieldValue.arrayUnion(...events);
     tx.update(issueRef, updates);
   });
 }
