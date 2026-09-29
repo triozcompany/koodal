@@ -1,70 +1,40 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import confetti from 'canvas-confetti';
 
 interface Props { onDone: () => void }
 
 const COLORS = ['#F03E3E', '#FFB300', '#0FA8A8', '#2DA84E', '#7C3AED'];
 
+// A quick, minimal fireworks flourish — this fires on a frequent, low-stakes
+// action (supporting an issue), so it's a couple of small bursts, not
+// canvas-confetti's own fireworks demo (15s of continuous bursts).
+const DURATION = 700;
+const BURST_EVERY = 350;
+
 export function Confetti({ onDone }: Props) {
-  const ref = useRef<HTMLCanvasElement>(null);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onDoneRef.current();
+      return;
+    }
 
-    const particles = Array.from({ length: 80 }, (_, idx) => {
-      const angle = (idx / 80) * Math.PI * 2 + (Math.sin(idx * 7.3) * 0.8);
-      const speed = 4 + Math.sin(idx * 3.1) * 3;
-      return {
-        x: canvas.width / 2,
-        y: canvas.height * 0.62,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 9,
-        color: COLORS[idx % COLORS.length],
-        size: 5 + (idx % 4),
-        rot: idx * 0.3,
-        rotV: (idx % 2 === 0 ? 0.18 : -0.22),
-        alpha: 1,
-      };
-    });
-
-    let frame: number;
-    const tick = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      let alive = 0;
-      for (const p of particles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.28;
-        p.rot += p.rotV;
-        p.alpha -= 0.013;
-        if (p.alpha <= 0) continue;
-        alive++;
-        ctx.save();
-        ctx.globalAlpha = p.alpha;
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-        ctx.restore();
-      }
-      if (alive > 0) {
-        frame = requestAnimationFrame(tick);
-      } else {
-        onDone();
-      }
+    const end = Date.now() + DURATION;
+    const fire = () => {
+      confetti({ particleCount: 16, startVelocity: 24, spread: 60, ticks: 80, zIndex: 300, colors: COLORS, origin: { x: 0.24, y: 0.7 } });
+      confetti({ particleCount: 16, startVelocity: 24, spread: 60, ticks: 80, zIndex: 300, colors: COLORS, origin: { x: 0.76, y: 0.7 } });
     };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [onDone]);
 
-  return (
-    <canvas
-      ref={ref}
-      style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 200 }}
-    />
-  );
+    fire();
+    const timer = setInterval(() => {
+      if (Date.now() >= end) { clearInterval(timer); onDoneRef.current(); return; }
+      fire();
+    }, BURST_EVERY);
+    return () => clearInterval(timer);
+  }, []);
+
+  return null;
 }
