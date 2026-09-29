@@ -1,0 +1,8 @@
+/* The Console's always-dark surfaces (rail, decision cards, Settings) use a lighter pulse-deep than
+   the citizen dark theme (#ea580c). The base is always light, so only nested dark scopes need it. */
+.cp-console [data-cp-theme="dark"] { --cp-pulse-deep: #fb923c; }
+
+/* Table row hover, used where inline styles can't express :hover. */
+.cp-console .cp-hover-row { transition: background .15s; }
+.cp-console .cp-hover-row:hover { background: var(--cp-bg); }
+.cp-console .cp-hover-row:active { background: var(--cp-surface-2); }
