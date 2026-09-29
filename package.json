@@ -14,14 +14,18 @@
     "@google/generative-ai": "^0.21.0",
     "@phosphor-icons/react": "^2.1.10",
     "@phosphor-icons/web": "2.1.1",
+    "canvas-confetti": "^1.9.4",
+    "cloudinary": "^2.11.0",
     "firebase": "^12.19.0",
     "firebase-admin": "^14.5.0",
+    "maplibre-gl": "^6.11.2",
     "next": "^16.3.6",
     "react": "^18",
     "react-dom": "^18",
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
