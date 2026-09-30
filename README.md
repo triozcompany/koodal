@@ -12,9 +12,11 @@
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 
-[![Pitch Deck](https://img.shields.io/badge/📥_Pitch_Deck-Download_PDF-F5B30A?style=for-the-badge)](public/docs/Koodal_Platform_Pitch_Deck.pdf)
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Coming_soon-E8590C?style=for-the-badge)](#-submission-checklist)
+[![Pitch Deck](https://img.shields.io/badge/📥_Pitch_Deck-View_%26_Download-F5B30A?style=for-the-badge)](https://ungakoodal.vercel.app/pitch)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-ungakoodal.vercel.app-E8590C?style=for-the-badge)](https://ungakoodal.vercel.app)
 [![Demo Video](https://img.shields.io/badge/🎬_Demo_Video-Coming_soon-0F8B83?style=for-the-badge)](#-submission-checklist)
+
+**🌐 Live: [ungakoodal.vercel.app](https://ungakoodal.vercel.app) · 💻 Source: [github.com/triozcompany/koodal](https://github.com/triozcompany/koodal)**
 
 **Built by TEAM TRIOZ for [Build with AI: Code for Communities](https://hack2skill.com/event/codeforcommunities2)**
 
@@ -36,24 +38,30 @@
 
 ## 💡 What is Koodal?
 
-Koodal gives an organization its own space for issues: **members report and verify, the team assigns and fixes, and members confirm the result.** Cities, apartments, campuses and institutions all run on the same core. Members never pay; organizations subscribe.
+**One open loop for every community's issues.** Koodal is a multi-tenant platform where any organization (a city corporation, an apartment community, a university or an institution) gets its own space to report, verify, fix and confirm local issues.
 
-This repo is the hackathon MVP (originally named CivicPulse), focused on the civic / government use case for Tamil Nadu.
+| | |
+|---|---|
+| 🗣 **Members report and support** | Report in your own language by photo, text or voice note through the Koodal app. Neighbours support and verify, so the most important issues rise to the top. |
+| 🛠 **The team decides and fixes** | Staff use the Koodal Console to accept or reject cases, assign the right team, track deadlines and post proof of the fix. |
+| ✅ **The community confirms** | A case closes only when the people who reported it agree it's fixed. Otherwise it reopens. |
 
-**📖 See the deck in the app at `/pitch`, or [download the PDF](public/docs/Koodal_Platform_Pitch_Deck.pdf).**
+**What makes it different**
+- **Built-in AI (Gemini):** turns voice notes in Tamil, Hindi and Tanglish into structured reports, merges duplicates into one case, and suggests category, severity and team. Staff always make the final decision.
+- **One product for every organization:** wording, categories, teams and joining rules adapt to a government, an apartment, a campus or an institution. One account works across all of them, with instant switching.
+- **Trust built in:** a public case timeline, community verification and closure only on members' confirmation.
+- **Built for India:** 12 Indian languages, UPI AutoPay and GST invoicing.
+
+**Impact:** people get a voice and see what happens to their reports. Organizations get fewer duplicates, clear priorities and data on which problems keep coming back.
+
+This repo is the hackathon MVP (originally named CivicPulse), focused on the civic / government use case for Tamil Nadu. See [Built vs roadmap](#built-vs-roadmap) for what is implemented today.
+
+**📖 [View the pitch deck](https://ungakoodal.vercel.app/pitch) in the app, or [download the PDF](https://ungakoodal.vercel.app/docs/Koodal_Platform_Pitch_Deck.pdf)** (also in the repo: [`public/docs/Koodal_Platform_Pitch_Deck.pdf`](public/docs/Koodal_Platform_Pitch_Deck.pdf)).
 
 ## 🔁 The loop
 
-```mermaid
-flowchart LR
-    A[📸 Member reports<br/>photo + language] --> B[✨ Gemini classifies,<br/>summarizes, routes]
-    B --> C[🔍 AI flags<br/>similar nearby issues]
-    C --> D[👥 Neighbours support<br/>and add evidence]
-    D -->|80% threshold| E[📂 Official case opens]
-    E --> F[🛠 Team decides,<br/>assigns, fixes]
-    F --> G[✅ Members confirm<br/>before / after proof]
-    G -.->|Not yet| E
-```
+The full flow diagram is in [Architecture](#-architecture) below.
+
 
 1. **Report:** a photo, in the member's own language (the deck targets 12 Indian languages).
 2. **AI suggests:** category, summary, severity and the department it goes to.
@@ -82,25 +90,33 @@ flowchart LR
 
 ## 🏗 Architecture
 
-```mermaid
-flowchart TB
-    subgraph Client["Next.js App Router"]
-      C1[Citizen app<br/>map · feed · report · cases]
-      C2[Government / team views]
-      C3[/pitch deck viewer/]
-    end
-    subgraph Server["Server"]
-      S1[Server Actions<br/>Firestore writes]
-      S2[/api/analyze/]
-    end
-    C1 --> S1
-    C1 --> S2
-    C2 --> S1
-    S1 --> DB[(Firestore)]
-    C1 -. realtime reads .-> DB
-    S2 --> G[Gemini]
-    DB -. planned .-> BQ[(BigQuery<br/>hotspot analytics)]
-```
+Diagrams from the [pitch deck](https://ungakoodal.vercel.app/pitch).
+
+### 1 · Complete report-to-resolution flow
+
+![Koodal complete report to resolution flow](public/docs/architecture/01-report-to-resolution-flow.png)
+
+### 2 · Platform features by role
+
+![Koodal platform features by role](public/docs/architecture/02-platform-features-by-role.png)
+
+### 3 · Technical architecture
+
+![Koodal technical architecture: multi-tenant, Firebase, Gemini](public/docs/architecture/03-technical-architecture.png)
+
+## 🔗 Live routes
+
+| Route | What it is |
+|---|---|
+| [`/`](https://ungakoodal.vercel.app/) | Landing page |
+| [`/get-started`](https://ungakoodal.vercel.app/get-started) | Create an organization |
+| [`/pitch`](https://ungakoodal.vercel.app/pitch) | Pitch deck viewer with PDF download ([PDF](https://ungakoodal.vercel.app/docs/Koodal_Platform_Pitch_Deck.pdf)) |
+| [`/nearby`](https://ungakoodal.vercel.app/nearby) | Citizen app: nearby issues on a map |
+| [`/feeds`](https://ungakoodal.vercel.app/feeds) | Citizen app: feed |
+| [`/search`](https://ungakoodal.vercel.app/search) | Citizen app: search |
+| [`/cases`](https://ungakoodal.vercel.app/cases) | Citizen app: cases |
+| [`/profile`](https://ungakoodal.vercel.app/profile) | Citizen app: profile |
+| [`/settings`](https://ungakoodal.vercel.app/settings) | Citizen app: settings |
 
 ## 🧩 Product model
 
@@ -160,16 +176,32 @@ _These are targets, not results._
 
 ## ✅ Submission checklist
 
-- [x] Source code: this repository
-- [x] Pitch deck: [`public/docs/Koodal_Platform_Pitch_Deck.pdf`](public/docs/Koodal_Platform_Pitch_Deck.pdf) (20 slides, also at `/pitch`)
+- [x] Source code: [github.com/triozcompany/koodal](https://github.com/triozcompany/koodal)
+- [x] Pitch deck: [`public/docs/Koodal_Platform_Pitch_Deck.pdf`](public/docs/Koodal_Platform_Pitch_Deck.pdf) (20 slides, also at [`/pitch`](https://ungakoodal.vercel.app/pitch))
 - [ ] Demo video (3–5 min): _TODO_
-- [ ] Deployed link: _TODO_
-- [ ] 2–3 line description: _TODO_
+- [x] Deployed link: [ungakoodal.vercel.app](https://ungakoodal.vercel.app)
+- [x] Short description: see [below](#submission-description)
+
+### Submission description
+
+> Koodal is a multi-tenant platform where any organization (city corporation, apartment, university or institution) gets its own space to report, verify, fix and confirm local issues.
+>
+> Members report problems by photo, text or voice in 12 Indian languages via the Koodal app. Neighbours support and verify reports so urgent issues rise. Staff use the Koodal Console to accept, assign and track cases against deadlines, then post proof of the fix. A case closes only when the community confirms it; otherwise it reopens.
+>
+> Gemini AI turns Tamil/Hindi voice notes into structured reports, merges duplicates and suggests category, severity and team; staff always make the final decision. One account works across many organizations, and the app adapts its wording, categories and teams to each.
+>
+> Organizations subscribe monthly (from ₹999) after a 14-day free trial; members never pay.
+>
+> Built with Next.js, Firebase, Gemini and Google Maps by Team TRIOZ.
 
 ## 👥 Team TRIOZ
 
-| | Member | Role |
-|---|---|---|
+| | Member | Role | Links |
+|---|---|---|---|
+| 🧭 | **Santhosh S** | Team Leader | [GitHub](https://github.com/itzthesandy) · [LinkedIn](https://www.linkedin.com/in/itzthesandy) |
+| 💻 | **Aakash T** | Team Member | [GitHub](https://github.com/CyberAakash) · [LinkedIn](https://www.linkedin.com/in/cyberaakash/) |
+
+---|---|---|
 | 🧭 | **Santhosh S** | Team Leader |
 | 💻 | **Aakash T** | Team Member |
 
@@ -219,7 +251,7 @@ The Firebase **client** (web) config in `lib/firebase/client.ts` is not secret �
 
 ## Project structure
 
-- `app/pitch/` — `/pitch`: the platform pitch deck viewer with PDF download (`public/docs/`).
+- `app/(marketing)/` — the public site: landing [`/`](https://ungakoodal.vercel.app/), [`/get-started`](https://ungakoodal.vercel.app/get-started) and the pitch deck viewer [`/pitch`](https://ungakoodal.vercel.app/pitch) with PDF download (`public/docs/`).
 - `app/(citizen)/` — the citizen-facing app (Next.js App Router), one route folder per screen (`feeds/`, `search/`, `cases/`, `issues/[issueId]/`, `profile/`, `settings/`, etc.), each typically split into a mobile `*Screen.tsx` and a desktop `Desktop*.tsx`.
 - `lib/domain/` — pure domain logic and types shared across screens (stages, filters, scoring, dedup, etc.), no framework or I/O dependencies.
 - `lib/firebase/` — Firestore client SDK (`client.ts`) and Admin SDK (`admin.ts`) setup.
