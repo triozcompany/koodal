@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import type { Me } from '@/lib/domain/types';
 import { useInstall } from '@/components/pwa/PwaProvider';
 
@@ -300,6 +301,12 @@ export function SettingsScreen({ me, meInitials, mob, setMe, clearVotes, onBack,
           <HoverTile icon="ph-lifebuoy" title="Help & feedback" sub="FAQs, contact support" onClick={() => toast('Help centre · support@koodal.in')} />
           <HoverTile icon="ph-info" title="About" sub="Koodal v1.0 · terms" onClick={() => toast('Koodal v1.0 · made in Tamil Nadu')} />
         </div>
+
+        <Link href="/" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14, borderRadius: 16, border: '1px solid var(--cp-line)', background: 'var(--cp-surface)', textDecoration: 'none', color: 'var(--cp-ink)', marginTop: 10 }}>
+          <i className="ph-bold ph-globe" style={{ fontSize: 20 }} />
+          <span style={{ font: '600 12.5px/1.2 Outfit,sans-serif' }}>Visit koodal.in</span>
+          <span style={{ font: '500 11px/1.2 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>Marketing site & organization sign-up</span>
+        </Link>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 24 }}>
           <HoverButton onClick={() => toast('Demo: account deletion needs OTP confirmation')} style={{ color: 'var(--cp-pulse)', background: 'var(--cp-surface)', border: '1px solid var(--cp-line)' }}>

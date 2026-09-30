@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/app-context';
 import { signInWithPhone, verifyAadhaar } from '@/server/actions/auth';
 
@@ -51,6 +52,7 @@ type Step = 'intro' | 'phone' | 'otp' | 'aad' | 'profile' | 'perm';
 const PROG_STEPS: Step[] = ['phone', 'otp', 'aad', 'profile', 'perm'];
 
 export function AuthScreen({ mob = true }: Props) {
+  const router = useRouter();
   const { signInWithToken, setMe } = useApp();
 
   const [introIdx, setIntroIdx] = useState(0);
@@ -152,14 +154,15 @@ export function AuthScreen({ mob = true }: Props) {
   }
 
   function goBack() {
-    if (step === 'phone') setStep('intro');
+    if (step === 'intro') router.push('/');
+    else if (step === 'phone') setStep('intro');
     else if (step === 'otp') setStep('phone');
     else if (step === 'aad') setStep('otp');
     else if (step === 'profile') setStep('aad');
     else if (step === 'perm') setStep('profile');
   }
 
-  const canBack = step !== 'intro';
+  const canBack = true;
 
   const priLabel =
     step === 'intro' ? (introIdx < 2 ? 'Next' : 'Get started') :

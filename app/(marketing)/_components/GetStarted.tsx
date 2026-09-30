@@ -83,6 +83,7 @@ export function GetStarted() {
       } else setBi(n);
     }, 650);
   };
+  const cancelCreate = () => { clearInterval(timers.current.bt); go('plan'); };
 
   const at = screen === 'creating' || screen === 'done' ? 4 : ['account', 'type', 'details', 'plan'].indexOf(screen);
   const STEP_LABELS = ['Your account', 'Organization type', 'Details', 'Plan'];
@@ -290,6 +291,7 @@ export function GetStarted() {
                   );
                 })}
               </div>
+              <button onClick={cancelCreate} style={s('align-self:flex-start;display:flex;align-items:center;gap:6px;height:36px;padding:0 12px 0 8px;border:none;border-radius:999px;background:var(--cp-surface-2);color:var(--cp-ink-2);font:600 12.5px/1 Outfit,sans-serif;cursor:pointer')}><i className="ph-bold ph-x" />Cancel</button>
             </div>
           )}
 

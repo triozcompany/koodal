@@ -126,7 +126,7 @@ export default function SignIn() {
   );
   const NAVLINK = { display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 13px/1 Outfit,sans-serif', color: 'var(--cp-ink-2)', textDecoration: 'none', whiteSpace: 'nowrap' } as const;
   const TopNav = (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, width: '100%', maxWidth: desk ? undefined : 400 }}>
+    <div style={{ position: 'sticky', top: 0, zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, width: '100%', maxWidth: desk ? undefined : 400, background: 'var(--cp-bg)', paddingTop: 8, paddingBottom: 8 }}>
       <Link href="/" style={NAVLINK}><i className="ph-bold ph-arrow-left" />Back to home</Link>
       <Link href="/console/get-started" style={NAVLINK}>Get started<i className="ph-bold ph-arrow-right" /></Link>
     </div>
@@ -176,7 +176,7 @@ export default function SignIn() {
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: desk ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', minHeight: '100vh' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: desk ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', minHeight: '100dvh' }}>
       {desk && (
         <div data-cp-theme="dark" style={{ display: 'flex', flexDirection: 'column', gap: 28, padding: '40px 48px', background: '#000', color: '#f5f5f5', overflow: 'hidden' }}>
           {Brand(true)}

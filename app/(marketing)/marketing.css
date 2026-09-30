@@ -126,10 +126,10 @@ html{scroll-behavior:smooth}
 @media (max-width:1023px){
   .kd-flow{grid-template-columns:minmax(0,1fr)}
   .kd-flow-rail{display:none}
+  .kd-flow-mobbar{display:flex}
 }
 @media (max-width:719px){
   .kd-flow-main{padding:20px 20px 40px}
-  .kd-flow-mobbar{display:flex}
 }
 
 /* language drawer: right-side panel on desktop, bottom sheet on mobile */

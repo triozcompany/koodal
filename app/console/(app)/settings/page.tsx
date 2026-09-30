@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import Link from 'next/link';
 import { Segmented } from '@/components/ui';
 import { currentOrg } from '@/lib/console/org';
 import { useMob } from '@/lib/console/useMob';
@@ -234,6 +235,7 @@ export default function Settings() {
         ))}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '14px 0 10px', borderTop: '1px solid var(--cp-line)' }}>
           <button onClick={exportLog} style={GHOST}><i className="ph-bold ph-download-simple" />Download action log</button>
+          <Link href="/" style={{ ...GHOST, textDecoration: 'none' }}><i className="ph-bold ph-globe" />Visit koodal.in</Link>
           <div style={{ flex: 1 }} />
           <button onClick={() => { signOut(); }} style={{ height: 44, padding: '0 18px', borderRadius: 999, border: '1.5px solid var(--cp-pulse)', background: 'var(--cp-surface)', color: 'var(--cp-pulse-deep)', font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}><i className="ph-bold ph-sign-out" />Sign out</button>
         </div>
