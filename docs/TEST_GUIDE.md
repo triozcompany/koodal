@@ -2,6 +2,8 @@
 
 How to sign in as staff (Console) and as a citizen, and a set of test scenarios with the result you should see.
 
+> **Recording a demo?** Use [DEMO_GUIDE.md](DEMO_GUIDE.md): seeded scenarios for every flow, test accounts, and click-by-click screenshots.
+
 > **These are demo accounts for a hackathon build.** The passwords and codes below are public in this file. Do not reuse them anywhere real, and change them (or run the seed with a different password) before showing this to anyone outside the team.
 
 ---
@@ -35,7 +37,7 @@ Sign-in is **employee ID + password, then a 6-digit code**.
 | `GCC-2041` | Priya Natarajan (Junior Engineer) | Staff | **Roads** only | `koodal-demo` |
 | `GCC-2042` | Farida Begum (Assistant Engineer) | Staff | **Water & Drainage** and **Sanitation** | `koodal-demo` |
 
-- **Shortcut:** the sign-in page has a **Test accounts** list; tap a row to fill the ID and password, and on the code screen tap **Use test code 123456**.
+- **Shortcut:** while test mode is on (Console → Settings, admin only), the sign-in page has a **Test accounts** list; tap a row to fill the ID and password, and on the code screen tap **Use test code 123456**.
 - **Code screen:** enter **any six digits** (for example `123456`). Text-message codes are not switched on, and the server does not check the code. The password is the only real check.
 - **Lockout:** five wrong passwords lock that employee ID for **5 minutes** (even the right password is refused meanwhile). Unknown IDs and wrong passwords show the same message on purpose.
 - **Unlock immediately:** in Firebase Console, open `staff/<ID>` and set `lockUntil` to `null` and `failedAttempts` to `0`.
@@ -53,24 +55,16 @@ Citizen sign-in is **phone number → code → Aadhaar check → profile**. All 
 | Step | What to enter |
 |---|---|
 | Intro screen | Tap **Log in** (or **Next** to see the intro first) |
-| Phone | `8787878787` (tap **Use demo number**), then **Send OTP** |
+| Phone | Tap a test account (listed while test mode is on), or type any 10-digit number, then **Send OTP** |
 | Code | Fills itself with `482137` (any 6 digits are accepted), then **Verify** |
 | Aadhaar (first time only) | `8787 8787 8787` (tap **Use demo Aadhaar**), tick the consent box, **Verify identity** |
 | Profile (first time only) | Any name, and pick an area, for example *Velachery, Chennai* |
 
 Returning users who are already verified go straight in after the code.
 
-**Shortcut:** the phone screen lists these numbers under **Demo numbers**; tap one to fill it (new citizens also get their name pre-filled on the profile step).
+**Test citizens** (seeded, already verified, listed under **Test accounts** while test mode is on): Kavya Raman `9000000001`, Arjun Kumar `9000000002`, Meena Sundaram `9000000003`, Karthik Selvam `9000000004`, Lakshmi Narayanan `9000000005`, Sathish Kumar `8787878787` (Madurai). `9000000009` is left unregistered to walk through onboarding.
 
-**You need several citizens to test the full lifecycle**, because a report only becomes a case once **5 people support it** (the reporter counts as 1, so four more). Any 10-digit number works and each number is its own citizen. Suggested test numbers:
-
-| Citizen | Phone |
-|---|---|
-| Reporter | `8787878787` |
-| Supporter 1 | `9000000001` |
-| Supporter 2 | `9000000002` |
-| Supporter 3 | `9000000003` |
-| Supporter 4 | `9000000004` |
+A report becomes a case at **5 supporters or 80% confidence** (admin-editable in Console → Settings → Test mode & thresholds). The reporter counts as 1, and joining a duplicate report counts as a support.
 
 Use a **separate browser profile or an incognito window per citizen** (the sign-in is stored in the browser). Every citizen goes through the Aadhaar and profile steps once.
 
@@ -78,9 +72,9 @@ Use a **separate browser profile or an incognito window per citizen** (the sign-
 
 ## 4. What the data looks like
 
-- **Real vs demo:** the database also holds ~30 sample issues that came with the design (fake names, striped placeholder photos). The Console **hides them by default** and tags them **Demo** when shown. Only reports created by a signed-in citizen count as real. Turn demo data on or off in **Console → Settings → Data → Show demo data**.
+- **Seed data:** the seeded scenarios, history and Madurai/Coimbatore issues (see [DEMO_GUIDE.md](DEMO_GUIDE.md)) carry a reporter and show as real, without the Demo tag. Older issues without a reporter still count as **Demo** and stay hidden unless **Console → Settings → Data → Show demo data** is on; **Reset seed data** removes them.
 - **Jurisdiction:** the Console shows reports in Chennai, or with GPS inside the Chennai metro area (this includes places like Guduvancheri and Tambaram). Reports elsewhere do not appear.
-- **Cases vs signals:** a report is a *signal* until it has an official case ID. It gets one when support reaches 5 supporters (or 80% confidence); then it waits in the Console as **Pending approval**.
+- **Cases vs signals:** a report is a *signal* until it has an official case ID. It gets one when support reaches the case threshold (default 5 supporters or 80% confidence); then it waits in the Console as **Pending approval**.
 
 ---
 
@@ -119,7 +113,7 @@ Each scenario lists the steps and the expected result. Do them in order the firs
    **Expect:** photos upload with a spinner, then thumbnails; the button stays disabled until every photo is uploaded. Status becomes **Fixed · confirming** and the proof thumbnails show on the case and its timeline.
 6. **Citizens:** open the case and answer whether it is fixed.
    - Three **not fixed** answers → the case **reopens** (back to In progress, flagged Reopened; the Console Home alert counts it).
-   - **Confirmed** answers count up; the case **closes** when confirmations reach the required number (25 by default; for a quick test lower `needed` on that issue in Firestore, for example to 2).
+   - **Confirmed** answers count up; the case **closes** when confirmations reach the required number (25 by default; for a quick test set **Confirmations to close a fixed case** to 3 in Console → Settings → Test mode & thresholds before marking it fixed).
 
 ### D. New signals and "Take up as case"
 1. Create a report as a citizen and do **not** support it further.
@@ -181,7 +175,7 @@ Edit `orgs/gcc` in Firebase Console, then sign in again (the server caches it fo
 - The Console **code screen is a demo** (any six digits). Only the password is checked.
 - **Notifications are not delivered**; the toggles are saved for later.
 - The Console language picker saves your choice but the Console text stays English.
-- There is **no screen to edit the org config**; edit `orgs/gcc` in Firestore.
+- The only config on screen is **Test mode & thresholds** (admin); edit the rest of `orgs/gcc` in Firestore.
 - Citizens still see striped placeholders instead of the staff **proof photos** on the fix-verification screen.
 - Reports whose location the geocoder cannot name may show the area "Velachery".
 - There is no `firestore.rules` file in the repo; access control depends on the rules set in the Firebase Console.
@@ -201,8 +195,10 @@ STAFF_SEED_PASSWORD='choose-something-else' npx tsx scripts/seed-console.ts --re
 # Replace the org config with the built-in defaults
 npx tsx scripts/seed-console.ts --overwrite-config
 
-# Sample design data (30 demo issues) — WARNING: deletes EVERY issue first, including real citizen reports
+# Demo seed: removes seeded/test-citizen/sample data (real citizen reports stay), then seeds again
 npx tsx scripts/seed-koodal.ts
+# Delete every issue and citizen profile (staff and config stay)
+npx tsx scripts/seed-koodal.ts --wipe
 ```
 
 If `npx tsx` cannot resolve the `@/` imports, add `--tsconfig tsconfig.json`.
