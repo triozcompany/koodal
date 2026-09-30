@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { s } from './s';
 import { TRIAL_DAYS } from './data';
 import { useInstall } from '@/components/pwa/PwaProvider';
+import { scrollToSection } from './Navbar';
 
 export function Hero() {
   const { showInstall, promptInstall } = useInstall();
@@ -18,6 +19,7 @@ export function Hero() {
           <div style={s('display:flex;gap:10px;flex-wrap:wrap;justify-content:center')}>
             <Link href="/pitch" className="kd-btn">See pitch<i className="ph-bold ph-arrow-right" /></Link>
             <Link href="/guide" className="kd-btn light"><i className="ph-fill ph-book-open-text" style={s('color:#e8590c;font-size:18px')} />See guide</Link>
+            <button className="kd-btn light" onClick={() => scrollToSection('video')}><i className="ph-fill ph-play-circle" style={s('color:#e8590c;font-size:18px')} />Watch video</button>
           </div>
           <span style={s('font:500 13px/1 Outfit,sans-serif;color:#6b5a4c')}>{TRIAL_DAYS}-day free trial · No card needed · 12 Indian languages</span>
           {showInstall && (

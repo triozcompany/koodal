@@ -225,3 +225,20 @@ html{scroll-behavior:smooth}
 /* the guide icon joins App + Console on phones; tighten the bar so the wordmark keeps its room */
 @media (max-width:719px){.kd-navbar-in{gap:8px!important;padding-left:12px!important}}
 @media (max-width:429px){.kd-root .kd-nav-applabel{display:none}.kd-navbar-in .kd-btn.nav.light{padding:0 12px}}
+
+/* product video (landing): 16:9 card; a play pill in the poster's empty lower band hands off to native controls */
+.kd-video{position:relative;width:100%;max-width:1000px;margin:30px auto 0;padding:10px;box-sizing:border-box;border-radius:30px}
+.kd-video:hover{transform:none}
+.kd-video video{display:block;width:100%;aspect-ratio:16/9;border-radius:22px;background:#0f0f0f;object-fit:cover}
+.kd-root .kd-video-play{position:absolute;inset:10px;border:none;border-radius:22px;background:transparent;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5%}
+.kd-video-play>span{display:inline-flex;align-items:center;gap:12px;height:56px;padding:0 22px 0 8px;border-radius:999px;background:#0f0f0f;color:#fff;font:600 15px/1 var(--font-outfit),Outfit,sans-serif;box-shadow:0 18px 40px -14px rgb(0 0 0/.55);transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.kd-video-play:hover>span{transform:translateY(-2px) scale(1.03)}
+.kd-video-play i{width:42px;height:42px;border-radius:50%;background:#e8590c;display:grid;place-items:center;font-size:17px}
+.kd-video-play:focus-visible{outline:2px solid var(--cp-pulse);outline-offset:3px}
+@media (max-width:719px){
+  .kd-video{padding:6px;border-radius:22px;margin-top:20px}
+  .kd-video video{border-radius:17px}
+  .kd-root .kd-video-play{inset:6px;border-radius:17px;padding-bottom:3%}
+  .kd-video-play>span{height:36px;gap:8px;padding:0 12px 0 4px;font-size:12px}
+  .kd-video-play i{width:28px;height:28px;font-size:12px}
+}

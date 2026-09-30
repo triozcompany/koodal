@@ -14,6 +14,7 @@
 
 [![Pitch Deck](https://img.shields.io/badge/📥_Pitch_Deck-View_%26_Download-F5B30A?style=for-the-badge)](https://ungakoodal.vercel.app/pitch)
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-ungakoodal.vercel.app-E8590C?style=for-the-badge)](https://ungakoodal.vercel.app)
+[![Product Video](https://img.shields.io/badge/▶_Product_Video-24_sec-0F0F0F?style=for-the-badge)](https://ungakoodal.vercel.app/videos/koodal-product.mp4)
 [![Videos, Demo & MVPs](https://img.shields.io/badge/🎬_Videos_%26_MVPs-Google_Drive-0F8B83?style=for-the-badge)](https://drive.google.com/drive/folders/1TgqQwe-fl_BlKD9noc_JsY8XaQktAov4?usp=sharing)
 
 **🌐 Live: [ungakoodal.vercel.app](https://ungakoodal.vercel.app) · 💻 Source: [github.com/triozcompany/koodal](https://github.com/triozcompany/koodal) · 🎬 [Videos, demo & MVPs](https://drive.google.com/drive/folders/1TgqQwe-fl_BlKD9noc_JsY8XaQktAov4?usp=sharing)**
@@ -25,6 +26,14 @@
 ---
 
 ## 💡 What is Koodal?
+
+<div align="center">
+
+<a href="https://ungakoodal.vercel.app/videos/koodal-product.mp4"><img src="public/videos/koodal-product-poster.jpg" width="720" alt="Koodal product video: Meet Koodal. One open loop for every community's issues." /></a>
+
+**▶ [Watch the 24-second product video](https://ungakoodal.vercel.app/videos/koodal-product.mp4)** · also in the repo: [`public/videos/koodal-product.mp4`](public/videos/koodal-product.mp4)
+
+</div>
 
 **One open loop for every community's issues.** Koodal is a multi-tenant platform where any organization (a city corporation, an apartment community, a university or an institution) gets its own space to report, verify, fix and confirm local issues.
 

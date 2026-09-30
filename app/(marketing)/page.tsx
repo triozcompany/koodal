@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Navbar } from './_components/Navbar';
 import { Hero } from './_components/Hero';
 import { TryIt } from './_components/TryIt';
+import { ProductVideo } from './_components/ProductVideo';
 import { IssueMarquee } from './_components/IssueMarquee';
 import { AiCards } from './_components/AiCards';
 import { ProductBento } from './_components/ProductBento';
@@ -23,6 +24,7 @@ export default function LandingPage() {
     <div className="kd-root" data-cp-theme="light">
       <Navbar />
       <Hero />
+      <ProductVideo />
       <TryIt />
       <IssueMarquee />
       <AiCards />
