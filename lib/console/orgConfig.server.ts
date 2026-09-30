@@ -12,3 +12,5 @@ export async function loadOrgConfig(): Promise<OrgConfig> {
   setActiveConfig(cfg);
   return cfg;
 }
+
+export const clearOrgConfigCache = () => { cache = null; };

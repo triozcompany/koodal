@@ -245,7 +245,7 @@ export function FixDrawer({ issue, open, onClose }: { issue: Issue; open: boolea
         <FieldLabel>Work summary · optional</FieldLabel>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="e.g. Manhole cover replaced, road surface patched." style={TEXTAREA} />
       </label>
-      <Note>{`Citizens will be asked to confirm. ${issue.needed} confirmations close the case; 3 “not fixed” responses reopen it.`}</Note>
+      <Note>{`Citizens will be asked to confirm. ${getConfig().fixConfirmsNeeded} confirmations close the case; 3 “not fixed” responses reopen it.`}</Note>
     </Drawer>
   );
 }

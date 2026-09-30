@@ -1,26 +1,20 @@
 'use server';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { matchScore } from '@/lib/domain/analyze';
-
-/** How confident a match must be to auto-merge a newly-crossing issue into an
- * already-cased one instead of minting a brand-new case — the same "strong
- * match" bar analyze() uses to auto-suggest Join at report time, since this
- * merge is automatic (no human confirms it), so it should be at least as
- * confident as that. */
-const CASE_MERGE_SCORE = 85;
+import { applySupport } from '@/lib/domain/support.server';
+import { loadOrgConfig } from '@/lib/console/orgConfig.server';
 
 /**
  * Casts one citizen's up/down vote, replacing whichever direction (if any) they
- * had cast before — never both at once, never counted twice. On an upvote that
- * crosses the existing community threshold, also assigns a caseId (in the same
- * transaction, using its own post-increment values — not a stale pre-vote read)
- * so "this became an official case" is a real, atomic transition.
+ * had cast before — never both at once, never counted twice. An upvote goes through
+ * applySupport, which may cross the community threshold and assign a caseId in the
+ * same transaction, so "this became an official case" is a real, atomic transition.
  */
 export async function castVote(id: string, dir: 'up' | 'down', prevDir: 'up' | 'down' | null, by: string, uid: string) {
   const now = Date.now();
   const issueRef = adminDb.doc(`issues/${id}`);
   const userRef = adminDb.doc(`users/${uid}`);
+  const cfg = await loadOrgConfig();
 
   return adminDb.runTransaction(async tx => {
     const snap = await tx.get(issueRef);
@@ -33,7 +27,7 @@ export async function castVote(id: string, dir: 'up' | 'down', prevDir: 'up' | '
     if (prevDir === 'down') opp = Math.max(0, opp - 1);
     if (dir === 'up') sup += 1; else opp += 1;
 
-    const updates: Record<string, unknown> = { sup, opp };
+    let updates: Record<string, unknown> = { sup, opp };
     let caseCreated = false;
     let caseId: string | undefined;
     let dupTargetRef: FirebaseFirestore.DocumentReference | null = null;
@@ -49,77 +43,10 @@ export async function castVote(id: string, dir: 'up' | 'down', prevDir: 'up' | '
     }];
 
     if (dir === 'up') {
-      const newConf = Math.min(97, (data.conf ?? 24) + 8);
-      updates.conf = newConf;
-      const crossed = sup >= 5 || newConf >= 80;
-      if (data.stage === 'reported' && crossed) updates.stage = 'community';
-
-      if (!data.caseId && crossed) {
-        // Dedup guard — read BEFORE any writes below, so this stays a valid
-        // transaction read: is there already a nearby (same city+category),
-        // still-open, already-cased issue that's really the same problem?
-        const candidates = await tx.get(
-          adminDb.collection('issues').where('city', '==', data.city).where('cat', '==', data.cat)
-        );
-        let dupTarget: { ref: FirebaseFirestore.DocumentReference; data: FirebaseFirestore.DocumentData; score: number } | null = null;
-        for (const doc of candidates.docs) {
-          if (doc.id === id) continue;
-          const c = doc.data();
-          if (!c.caseId || ['closed', 'rejected'].includes(c.stage)) continue;
-          const { score } = matchScore(data.x, data.y, c.x, c.y);
-          if (score >= CASE_MERGE_SCORE && (!dupTarget || score > dupTarget.score)) {
-            dupTarget = { ref: doc.ref, data: c, score };
-          }
-        }
-
-        if (dupTarget) {
-          // Fold into the existing case instead of minting a new one. Also take
-          // the primary's stage — otherwise this issue's own stage pill would
-          // still read e.g. "Gathering support" right next to an "OFFICIAL
-          // CASE" banner, since crossing the threshold only ever advances a
-          // 'reported' stage to 'community', never further.
-          caseId = dupTarget.data.caseId;
-          caseCreated = true;
-          updates.caseId = caseId;
-          updates.thresholdAt = now;
-          updates.stage = dupTarget.data.stage;
-          updates.dept = dupTarget.data.dept;
-          updates.assignee = dupTarget.data.assignee ?? null;
-          updates.prio = dupTarget.data.prio ?? null;
-          updates.due = dupTarget.data.due ?? null;
-          updates.confirms = dupTarget.data.confirms ?? 0;
-          updates.needed = dupTarget.data.needed ?? 25;
-          newEvents.push({
-            ts: now, title: `Merged into official case ${caseId}`, sub: dupTarget.data.dept ?? '',
-            icon: 'ph-intersect', kind: 'case', photo: '',
-          });
-          dupTargetRef = dupTarget.ref;
-          dupTargetUpdate = {
-            sup: FieldValue.increment(sup),
-            merged: FieldValue.arrayUnion({
-              id, by: data.by, h: Math.round((now - data.created) / 3600000),
-              text: data.text || data.title, sim: dupTarget.score,
-            }),
-            events: FieldValue.arrayUnion({
-              ts: now, title: `${data.by}'s report joined this case`, sub: `${sup} supporters folded in`,
-              icon: 'ph-intersect', kind: 'case', photo: '',
-            }),
-          };
-        } else {
-          const counterRef = adminDb.doc('counters/case');
-          const cSnap = await tx.get(counterRef);
-          const caseSeq: number = (cSnap.exists ? cSnap.data()!.caseSeq : 24800) + 1;
-          tx.set(counterRef, { caseSeq }, { merge: true });
-          caseId = `CP-CHN-${caseSeq}`;
-          updates.caseId = caseId;
-          updates.thresholdAt = now;
-          newEvents.push({
-            ts: now, title: `Community verified · ${newConf}%`, sub: 'Sent to Greater Chennai Corp.',
-            icon: 'ph-shield-check', kind: 'community', photo: '',
-          });
-          caseCreated = true;
-        }
-      }
+      const r = await applySupport(tx, id, data, sup, cfg, now);
+      updates = { ...updates, ...r.updates };
+      newEvents.push(...r.events);
+      ({ caseCreated, caseId, dupTargetRef, dupTargetUpdate } = r);
     }
 
     updates.events = FieldValue.arrayUnion(...newEvents);
@@ -231,7 +158,7 @@ export async function validateFix(id: string, yes: boolean, by: string) {
     if (!snap.exists) throw new Error('Issue not found');
     const data = snap.data()!;
     const next = (data[field] ?? 0) + 1;
-    const needed = data.needed ?? 25;
+    const needed = data.needed ?? (await loadOrgConfig()).fixConfirmsNeeded;
     const events: Record<string, unknown>[] = [{
       ts: now,
       title: yes ? `${by} confirmed fixed` : `${by} disputed the fix`,

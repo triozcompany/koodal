@@ -81,11 +81,26 @@ export function matchScore(ax: number, ay: number, bx: number, by: number): { di
   return { dist: Math.round(m), score: Math.max(0, Math.round(98 - m / 20)) };
 }
 
-export interface ReportLocation {
+type Spot = { x: number; y: number; lat?: number; lng?: number };
+
+/** matchScore on real GPS when both sides have it. The fake x/y only covers Chennai (see
+ * projectToFakeMap) — every Madurai or Coimbatore point clamps to the same edge and would
+ * look like a perfect match. */
+const hasGps = (s: Spot): s is Spot & { lat: number; lng: number } => typeof s.lat === 'number' && typeof s.lng === 'number';
+
+export function spotScore(a: Spot, b: Spot): { dist: number; score: number } {
+  if (!hasGps(a) || !hasGps(b)) return matchScore(a.x, a.y, b.x, b.y);
+  const R = 6371e3, rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  const m = 2 * R * Math.asin(Math.sqrt(h));
+  return { dist: Math.round(m), score: Math.max(0, Math.round(98 - m / 20)) };
+}
+
+export interface ReportLocation extends Spot {
   title: string;
   street: string;
-  x: number;
-  y: number;
+  city?: string;
 }
 
 /** `cat` (the category chosen on the report form) still drives the mocked AI
@@ -98,9 +113,10 @@ export function analyze(cat: Category, issues: Issue[], report: ReportLocation):
   const H = 3600e3;
   const now = Date.now();
   const matches: AnalysisMatch[] = issues
-    .filter(i => i.city === 'Chennai' && i.cat === cat && !['closed', 'rejected'].includes(i.stage) && i.km < 3)
+    // With GPS on both sides distance decides; geocoder city names ("Chennai" vs a suburb town) vary too much to gate on.
+    .filter(i => (hasGps(i) && hasGps(report) ? true : i.city === (report.city || 'Chennai') && i.km < 3) && i.cat === cat && !['closed', 'rejected'].includes(i.stage))
     .map(i => {
-      const { dist, score } = matchScore(i.x, i.y, report.x, report.y);
+      const { dist, score } = spotScore(i, report);
       return {
         id: i.id, title: i.title, dist,
         score,
@@ -120,7 +136,7 @@ export function analyze(cat: Category, issues: Issue[], report: ReportLocation):
     x: report.x,
     y: report.y,
     dept: deptFor(cat),
-    corp: CITY.Chennai.corp,
+    corp: (CITY[report.city ?? ''] ?? CITY.Chennai).corp,
     catLabel: CATS[cat].l,
     icon: CATS[cat].icon,
     summary: `${sc.label} at ${report.street}. ${sc.risk}.`,

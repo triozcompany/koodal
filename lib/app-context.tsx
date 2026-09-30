@@ -7,6 +7,7 @@ import { auth, db } from '@/lib/firebase/client';
 import type { Issue, Me, MapCamera } from '@/lib/domain/types';
 import { castVote, addEvidence, deleteEvidence, addComment, editComment, deleteComment, validateFix, editReport, deleteReport } from '@/server/actions/issue';
 import { updateProfile } from '@/server/actions/auth';
+import { getPublicConfig } from '@/server/actions/public-config';
 
 const GUEST_ME: Me = { uid: '', verified: false, anonDefault: false, name: '', area: '', votes: {} };
 
@@ -19,6 +20,8 @@ interface AppCtx {
   // distinct from `loading` (issues), so the shell can tell "still checking"
   // apart from "checked, and there's no session" (which is what gates AuthScreen).
   authReady: boolean;
+  /** The signed-in uid's profile doc has arrived; until then `me` is the guest placeholder and `authed` reads false. */
+  meReady: boolean;
   authed: boolean;
   meInitials: string;
   setMe: (patch: Partial<Me>) => void;
@@ -53,6 +56,9 @@ interface AppCtx {
   // Community-verified celebration, triggered when support crosses the threshold
   thresholdIssue: Issue | null;
   closeThreshold: () => void;
+  showThreshold: (id: string, caseId?: string) => void;
+  /** Case thresholds and test mode from orgs/gcc (defaults until loaded). */
+  publicConfig: { caseSupporters: number; caseConfidence: number; testMode: boolean };
 
   // Map maximize — shared between the Home route (which triggers it) and the
   // shell (which hides the rail/nav while it's active)
@@ -154,6 +160,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [me, setMeState] = useState<Me>(GUEST_ME);
   const [votes, setVotes] = useState<Record<string, 'up' | 'down'>>({});
   const [thresholdIssue, setThresholdIssue] = useState<Issue | null>(null);
+  const [publicConfig, setPublicConfig] = useState({ caseSupporters: 5, caseConfidence: 80, testMode: false });
   const [mapMaximized, setMapMaximized] = useState(false);
   const [mobileMapMax, setMobileMapMax] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -272,6 +279,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [issues, me.uid],
   );
 
+  useEffect(() => { getPublicConfig().then(setPublicConfig).catch(() => {}); }, []);
+
+  const showThreshold = useCallback((id: string, caseId?: string) => {
+    const issue = issuesWithMine.find(i => i.id === id);
+    if (issue) setThresholdIssue({ ...issue, caseId: caseId ?? issue.caseId });
+  }, [issuesWithMine]);
+
   // Shared vote-casting: switching direction is allowed, re-casting the same
   // direction again is a no-op (no retract to neutral).
   const castVoteLocal = useCallback(async (id: string, dir: 'up' | 'down') => {
@@ -280,10 +294,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setVotes(prev => ({ ...prev, [id]: dir }));
     try {
       const result = await castVote(id, dir, prevDir, me.name, me.uid);
-      if (result.caseCreated) {
-        const issue = issuesWithMine.find(i => i.id === id);
-        if (issue) setThresholdIssue({ ...issue, caseId: result.caseId ?? issue.caseId });
-      }
+      if (result.caseCreated) showThreshold(id, result.caseId);
     } catch (err) {
       console.error('castVote failed:', err);
       setVotes(prev => {
@@ -292,7 +303,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return next;
       });
     }
-  }, [votes, me.name, me.uid, issuesWithMine]);
+  }, [votes, me.name, me.uid, showThreshold]);
 
   const toggleSupport = useCallback((id: string) => castVoteLocal(id, 'up'), [castVoteLocal]);
   const handleOppose = useCallback((id: string) => castVoteLocal(id, 'down'), [castVoteLocal]);
@@ -344,13 +355,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [mob, router]);
 
   const value: AppCtx = {
-    issues: issuesWithMine, loading, me, authReady, authed, meInitials, setMe, signInWithToken, logout,
+    issues: issuesWithMine, loading, me, authReady, meReady: !authUid || me.uid === authUid, authed, meInitials, setMe, signInWithToken, logout,
     mob, wide,
     votes, setVotes,
     supported, opposed, toggleSupport, handleOppose,
     handleAddEvidence, handleDeleteEvidence, handleAddComment, handleEditComment, handleDeleteComment, handleValidateFix,
     handleEditReport, handleDeleteReport,
-    thresholdIssue, closeThreshold,
+    thresholdIssue, closeThreshold, showThreshold, publicConfig,
     mapMaximized, setMapMaximized, mobileMapMax, setMobileMapMax,
     filterOpen, setFilterOpen, locationOpen, setLocationOpen,
     editFor, setEditFor, commentsFor, setCommentsFor, verifyFor, setVerifyFor,

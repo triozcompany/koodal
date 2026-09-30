@@ -122,9 +122,10 @@ export async function postUpdate(idToken: string, id: string, note: string) {
 export async function markFixed(idToken: string, id: string, p: { note: string; proof: { url: string; publicId?: string }[] }) {
   const { ref, actor } = await staffCase(idToken, id, inStages('progress'));
   const proof = cleanProof(p.proof, actor);
+  const needed = getConfig().fixConfirmsNeeded;
   await ref.update({
-    stage: 'resolved', fixProof: proof, fixNote: p.note.trim(), confirms: 0, disputes: 0, fixedBy: actor,
+    stage: 'resolved', fixProof: proof, fixNote: p.note.trim(), confirms: 0, disputes: 0, needed, fixedBy: actor,
     events: FieldValue.arrayUnion(gov(actor, 'Marked fixed by department', p.note.trim() || 'Proof photo attached · citizens asked to confirm', 'ph-check', proof[0].url, 'fix')),
   });
-  return { needed: (await ref.get()).data()?.needed ?? 25 };
+  return { needed };
 }

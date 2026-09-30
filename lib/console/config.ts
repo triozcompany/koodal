@@ -17,6 +17,15 @@ export interface OrgConfig {
   quickTargetDays: number[];
   rejectReasons: RejectReasonConfig[];
   departments: DeptConfig[];
+  /** An issue becomes an official case at caseSupporters supporters OR caseConfidence % confidence. */
+  caseSupporters: number;
+  caseConfidence: number;
+  /** Confidence (%) each support or join adds. */
+  confPerSupport: number;
+  /** Citizen confirmations needed to close a case the department marked fixed. */
+  fixConfirmsNeeded: number;
+  /** Unlocks seed/reset/wipe in Settings and shows test accounts on both sign-in pages. */
+  testMode: boolean;
 }
 
 export const DEFAULT_CONFIG: OrgConfig = {
@@ -38,6 +47,11 @@ export const DEFAULT_CONFIG: OrgConfig = {
     { name: 'Streetlights', icon: 'ph-lightbulb', teams: ['Streetlights Team'], citizenDepts: ['Electrical'] },
     { name: 'Parks & Trees', icon: 'ph-tree', teams: ['Parks & Trees Team'], citizenDepts: ['Parks & Trees'] },
   ],
+  caseSupporters: 5,
+  caseConfidence: 80,
+  confPerSupport: 8,
+  fixConfirmsNeeded: 25,
+  testMode: false,
 };
 
 const strs = (v: unknown): string[] | null => (Array.isArray(v) && v.length && v.every((x) => typeof x === 'string' && x) ? (v as string[]) : null);
@@ -59,12 +73,18 @@ export function mergeConfig(raw: unknown): OrgConfig {
         return typeof x?.name === 'string' && x.name && teams ? [{ name: x.name, icon: typeof x.icon === 'string' && x.icon ? x.icon : 'ph-buildings', teams, citizenDepts: citizen ?? [] }] : [];
       })
     : [];
+  const pos = (k: 'caseSupporters' | 'caseConfidence' | 'confPerSupport' | 'fixConfirmsNeeded') => (Number(r[k]) > 0 ? Math.round(Number(r[k])) : d[k]);
   return {
     decisionSlaHours: sla > 0 ? sla : d.decisionSlaHours,
     targetDaysBySeverity: { critical: dayOf('critical'), high: dayOf('high'), medium: dayOf('medium'), low: dayOf('low') },
     quickTargetDays: quick.length ? quick : d.quickTargetDays,
     rejectReasons: reasons.length ? reasons : d.rejectReasons,
     departments: depts.length ? depts : d.departments,
+    caseSupporters: pos('caseSupporters'),
+    caseConfidence: Math.min(100, pos('caseConfidence')),
+    confPerSupport: pos('confPerSupport'),
+    fixConfirmsNeeded: pos('fixConfirmsNeeded'),
+    testMode: r.testMode === true,
   };
 }
 

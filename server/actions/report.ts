@@ -5,6 +5,8 @@ import { CATS, TAGS } from '@/lib/domain/constants';
 import { CAT_MOCK, deptFor } from '@/lib/domain/analyze';
 import { projectToFakeMap } from '@/lib/domain/geo';
 import type { Category, Issue } from '@/lib/domain/types';
+import { applySupport } from '@/lib/domain/support.server';
+import { loadOrgConfig } from '@/lib/console/orgConfig.server';
 
 function ini(name: string) {
   return name.split(' ').map(s => s[0]).join('');
@@ -84,7 +86,7 @@ export async function submitReport(opts: {
       prio: null,
       due: null,
       confirms: 0,
-      needed: 25,
+      needed: (await loadOrgConfig()).fixConfirmsNeeded,
       valYes: 0,
       valNo: 0,
       evidence: Array.from({ length: Math.max(1, opts.photos) }, (_, k) => ({
@@ -129,8 +131,10 @@ export async function joinIssue(opts: {
   const initials = opts.anon ? 'AN' : ini(opts.by);
   const issueRef = adminDb.doc(`issues/${opts.joinId}`);
   const userRef = adminDb.doc(`users/${opts.uid}`);
+  const cfg = await loadOrgConfig();
 
-  await adminDb.runTransaction(async tx => {
+  // Joining a duplicate is a support like any other, so it can cross the threshold too.
+  const res = await adminDb.runTransaction(async tx => {
     const snap = await tx.get(issueRef);
     if (!snap.exists) throw new Error('Issue not found');
     const data = snap.data()!;
@@ -149,8 +153,8 @@ export async function joinIssue(opts: {
       me: true,
     };
     const newTags = [...new Set([...(data.tags ?? []), ...opts.tags])];
-    const newConf = Math.min(97, (data.conf ?? 24) + 1);
     const newSup = (data.sup ?? 0) + 1;
+    const r = await applySupport(tx, opts.joinId, data, newSup, cfg, now);
     const newEvent = {
       ts: now,
       title: `${who} joined with a photo`,
@@ -161,14 +165,16 @@ export async function joinIssue(opts: {
     };
     tx.set(userRef, { votes: { [opts.joinId]: 'up' } }, { merge: true });
     tx.update(issueRef, {
+      ...r.updates,
       sup: newSup,
-      conf: newConf,
       tags: newTags,
       evidence: FieldValue.arrayUnion(...newEvidence),
       merged: FieldValue.arrayUnion(mergeEntry),
-      events: FieldValue.arrayUnion(newEvent),
+      events: FieldValue.arrayUnion(newEvent, ...r.events),
     });
+    if (r.dupTargetRef && r.dupTargetUpdate) tx.update(r.dupTargetRef, r.dupTargetUpdate);
+    return { caseCreated: r.caseCreated, caseId: r.caseId };
   });
 
-  return { id: opts.joinId };
+  return { id: opts.joinId, ...res };
 }

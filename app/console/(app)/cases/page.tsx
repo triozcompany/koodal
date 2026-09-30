@@ -1,4 +1,5 @@
 'use client';
+import { getConfig } from '@/lib/console/config';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase/client';
@@ -125,7 +126,7 @@ function CasesInner() {
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
           <span style={{ fontFamily: "'DM Serif Display',serif", fontWeight: 400, fontSize: mob ? 30 : 38, lineHeight: 1.05, letterSpacing: '-.03em' }}>Cases</span>
-          <span style={{ font: '500 13px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-2)', textWrap: 'pretty' }}>Opened automatically when community support crosses the 80% threshold · {cases.length} {cases.length === 1 ? 'case' : 'cases'} in {currentOrg.short}</span>
+          <span style={{ font: '500 13px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-2)', textWrap: 'pretty' }}>Opened automatically when community support crosses the {getConfig().caseSupporters}-supporter / {getConfig().caseConfidence}% threshold · {cases.length} {cases.length === 1 ? 'case' : 'cases'} in {currentOrg.short}</span>
         </div>
         {scope === 'cases' && <div role="tablist" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, background: 'var(--cp-surface-2)', flex: 'none' }}>
           {([['list', 'List', 'ph-rows'], ['board', 'Board', 'ph-kanban']] as const).map(([k, l, icon]) => {

@@ -51,10 +51,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const {
-    issues, loading, me, authReady, authed, meInitials, mob, wide, logout,
+    issues, loading, me, authReady, meReady, authed, meInitials, mob, wide, logout,
     supported, toggleSupport, handleOppose, handleAddEvidence, handleAddComment, handleEditComment, handleDeleteComment, handleValidateFix,
     handleEditReport, handleDeleteReport,
-    thresholdIssue, closeThreshold,
+    thresholdIssue, closeThreshold, showThreshold,
     mapMaximized, mobileMapMax,
     filterOpen, setFilterOpen, locationOpen, setLocationOpen,
     editFor, setEditFor, commentsFor, setCommentsFor, verifyFor, setVerifyFor,
@@ -144,7 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const onSlideSubmit = useCallback(() => {
     if (!location) return;
     const { x, y } = projectToFakeMap(location.lat, location.lng);
-    setAn(analyze(cat, issues, { title, street: location.address, x, y }));
+    setAn(analyze(cat, issues, { title, street: location.address, x, y, lat: location.lat, lng: location.lng, city: location.city }));
     setReportStep('ai');
   }, [cat, issues, location, title]);
 
@@ -219,7 +219,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     setSubmitPhase('saving');
     try {
-      await joinIssue({ joinId: id, cat, anon, text: desc, tags, photos: shots.length, by: me.name, uid: me.uid, score: match?.score ?? 90, photoUrls });
+      const res = await joinIssue({ joinId: id, cat, anon, text: desc, tags, photos: shots.length, by: me.name, uid: me.uid, score: match?.score ?? 90, photoUrls });
       removeDraftPhotos(shots.map(s => s.id));
       setAn(null);
       setSubmitPhase('idle');
@@ -230,13 +230,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setVotes(prev => ({ ...prev, [id]: 'up' }));
       setJustJoinedId(id);
       openIssue(id);
+      if (res.caseCreated) showThreshold(id, res.caseId);
     } catch (err) {
       console.error('joinIssue failed:', err);
       await deleteCloudinaryImages(publicIds);
       setSubmitError("Couldn't join this report — try again.");
       setSubmitPhase('idle');
     }
-  }, [an, cat, anon, desc, tags, shots, uploadDraftShots, openIssue, setVotes, setJustJoinedId, me.name, me.uid]);
+  }, [an, cat, anon, desc, tags, shots, uploadDraftShots, openIssue, setVotes, setJustJoinedId, showThreshold, me.name, me.uid]);
 
   // One of the 7 real category icons sets the actual category (driving the
   // AI mock + what gets saved); one of the 4 generic "Other" icons is purely
@@ -259,11 +260,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Route guard: anyone not fully onboarded (signed in + Aadhaar-verified +
   // named) belongs at /onboard-member, whatever URL they landed on.
+  // Waits for meReady so a reload of a deep link is not bounced before the profile arrives.
   useEffect(() => {
-    if (authReady && !loading && !authed && pathname !== ONBOARD_ROUTE) {
+    if (authReady && meReady && !loading && !authed && pathname !== ONBOARD_ROUTE) {
       router.replace(ONBOARD_ROUTE);
     }
-  }, [authReady, loading, authed, pathname, router]);
+  }, [authReady, meReady, loading, authed, pathname, router]);
 
   if (loading || !authReady) return <LoadingScreen />;
   if (!authed && pathname !== ONBOARD_ROUTE) return <LoadingScreen />;
@@ -379,7 +381,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {thresholdIssue && (
         <ThresholdModal
-          issue={thresholdIssue}
+          // thresholdIssue is captured before the vote lands; the live copy carries the new counts.
+          issue={{ ...thresholdIssue, ...issues.find(i => i.id === thresholdIssue.id), caseId: thresholdIssue.caseId }}
           onClose={closeThreshold}
           onTrack={() => { closeThreshold(); if (thresholdIssue.caseId) openCase(thresholdIssue.caseId); }}
         />

@@ -8,6 +8,7 @@ import { uploadPhoto } from '@/lib/cloudinary/upload';
 import { Confetti } from '../components/Confetti';
 import { TimelineSheet } from '../components/TimelineSheet';
 import { IssueTopBar } from '../components/IssueTopBar';
+import { useApp } from '@/lib/app-context';
 import styles from './DetailScreen.module.css';
 
 interface Props {
@@ -84,6 +85,7 @@ export function DetailScreen({
   confettiFired = false, celebrateOnOpen = false,
   onBack, onSupport, onOppose, onAddEvidence, onEdit, onComments, onPhotos, onVerify, onViewCase, onOpenReport, onConfettiDone,
 }: Props) {
+  const { publicConfig: th } = useApp();
   const [holdProg, setHoldProg]     = useState(0);
   const holdTimer                   = useRef<ReturnType<typeof setInterval> | null>(null);
   const onSupportRef                = useRef(onSupport);
@@ -135,10 +137,10 @@ export function DetailScreen({
   const preCase    = ['reported', 'community', 'review'].includes(d.stage);
   const rejected   = d.stage === 'rejected';
   const confW      = `${d.conf}%`;
-  const confC      = d.conf >= 80 ? 'var(--cp-peacock)' : 'var(--cp-marigold)';
-  const confNote   = d.conf >= 80
+  const confC      = d.caseId || d.conf >= th.caseConfidence ? 'var(--cp-peacock)' : 'var(--cp-marigold)';
+  const confNote   = d.caseId
     ? `Now with ${corp(d)} for review`
-    : `${corp(d)} review begins when confidence hits 80%`;
+    : `${corp(d)} review begins at ${th.caseSupporters} supporters or ${th.caseConfidence}% confidence`;
   const hasTags    = (d.tags?.length ?? 0) > 0;
   const hasLinked  = (d.merged?.length ?? 0) > 0;
   const canEdit    = d.mine && !d.caseId;
@@ -346,7 +348,7 @@ export function DetailScreen({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ position: 'relative', flex: 1, height: 12, borderRadius: 6, background: 'var(--cp-surface-2)' }}>
               <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: confW, borderRadius: 6, background: confC, transition: 'width .8s cubic-bezier(.3,1.4,.5,1)' }} />
-              <div style={{ position: 'absolute', left: '80%', top: -5, bottom: -5, width: 3, borderRadius: 2, background: 'var(--cp-ink)' }} />
+              <div style={{ position: 'absolute', left: `${th.caseConfidence}%`, top: -5, bottom: -5, width: 3, borderRadius: 2, background: 'var(--cp-ink)' }} />
             </div>
             <span style={{ font: '700 14px/1 Outfit,sans-serif' }}>{d.conf}%</span>
           </div>
