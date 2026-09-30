@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { s } from './s';
 import { TRIAL_DAYS } from './data';
-import { scrollToSection } from './Navbar';
 import { useInstall } from '@/components/pwa/PwaProvider';
 
 export function Hero() {
@@ -17,8 +16,8 @@ export function Hero() {
           <h1 className="kd-h1">Every issue <span className="kd-hi">reported</span>, <span className="kd-hi">resolved</span> and confirmed by your community.</h1>
           <p style={s('margin:0;max-width:620px;font:400 18px/1.6 Outfit,sans-serif;color:#4d4d4d;text-wrap:pretty')}>Koodal gives your organization one open loop: members report and verify, your team fixes, and members confirm it&apos;s done.</p>
           <div style={s('display:flex;gap:10px;flex-wrap:wrap;justify-content:center')}>
-            <Link href="/console/get-started" className="kd-btn">Start free trial<i className="ph-bold ph-arrow-right" /></Link>
-            <button className="kd-btn light" onClick={() => scrollToSection('product')}><i className="ph-fill ph-play-circle" style={s('color:#e8590c;font-size:18px')} />See how it works</button>
+            <Link href="/pitch" className="kd-btn">See pitch<i className="ph-bold ph-arrow-right" /></Link>
+            <Link href="/guide" className="kd-btn light"><i className="ph-fill ph-book-open-text" style={s('color:#e8590c;font-size:18px')} />See guide</Link>
           </div>
           <span style={s('font:500 13px/1 Outfit,sans-serif;color:#6b5a4c')}>{TRIAL_DAYS}-day free trial · No card needed · 12 Indian languages</span>
           {showInstall && (
