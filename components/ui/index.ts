@@ -16,3 +16,4 @@ export { Toast }              from './Toast';
 export { Fab }                from './Fab';
 export { Avatar }             from './Avatar';
 export { SectionLabel }       from './SectionLabel';
+export { PullToRefresh }      from './PullToRefresh';

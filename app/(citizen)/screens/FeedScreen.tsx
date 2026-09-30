@@ -5,6 +5,7 @@ import { CATS, issueIcon } from '@/lib/domain/constants';
 import { PILL, AVB } from '@/lib/domain/stage-style';
 import { ago, score, topTags } from '@/lib/domain/rules';
 import { useApp } from '@/lib/app-context';
+import { PullToRefresh } from '@/components/ui';
 import { ImageCarousel } from '../components/ImageCarousel';
 import styles from './FeedScreen.module.css';
 
@@ -41,7 +42,7 @@ function confColor(conf: number): string {
 
 export function FeedScreen({ issues, supported, opposed = {}, meInitials, meVerified, mob = false, wide = false, onOpen, onSupport, onComments, onOppose, onProfile }: Props) {
   const showSidebar = !mob && wide;
-  const { feedScroll, setFeedScroll } = useApp();
+  const { feedScroll, setFeedScroll, refresh } = useApp();
   const bodyRef = useRef<HTMLDivElement>(null);
   const restoredScrollRef = useRef(false);
 
@@ -99,7 +100,7 @@ export function FeedScreen({ issues, supported, opposed = {}, meInitials, meVeri
       </div>
 
       {/* Body */}
-      <div ref={bodyRef} style={{ flex: 1, overflowY: 'auto', padding: mob ? '0 0 110px' : '18px 32px 64px', background: 'var(--cp-bg)' }}>
+      <PullToRefresh scrollRef={bodyRef} onRefresh={refresh} disabled={!mob} style={{ flex: 1, overflowY: 'auto', padding: mob ? '0 0 110px' : '18px 32px 64px', background: 'var(--cp-bg)' }}>
         <div style={{ maxWidth: mob ? '100%' : 1240, margin: mob ? undefined : '0 auto', display: 'grid', gridTemplateColumns: showSidebar ? 'minmax(0,1fr) 300px' : 'minmax(0,1fr)', gap: 24, alignItems: 'start' }}>
           <div style={{ minWidth: 0, maxWidth: showSidebar ? undefined : (mob ? undefined : 720) }}>{feedList}</div>
 
@@ -136,7 +137,7 @@ export function FeedScreen({ issues, supported, opposed = {}, meInitials, meVeri
             </aside>
           )}
         </div>
-      </div>
+      </PullToRefresh>
     </div>
   );
 }

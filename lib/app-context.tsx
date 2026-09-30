@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, doc, getDocs, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithCustomToken, signOut, type User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase/client';
@@ -127,6 +127,7 @@ interface AppCtx {
   setSearchScroll: (v: number) => void;
   feedScroll: number;
   setFeedScroll: (v: number) => void;
+  refresh: () => Promise<void>;
 }
 
 const Ctx = createContext<AppCtx | null>(null);
@@ -272,6 +273,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return unsub;
   }, []);
 
+  const refresh = useCallback(async () => {
+    const snap = await getDocs(query(collection(db, 'issues'), orderBy('created', 'desc')));
+    setIssues(snap.docs.map(d => ({ id: d.id, ...d.data() } as Issue)));
+  }, []);
+
   // `mine` is derived here, not trusted from Firestore — it's "does this
   // issue's creator uid match the signed-in uid," recomputed whenever either changes.
   const issuesWithMine = useMemo(
@@ -375,7 +381,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     nearbyListScroll, setNearbyListScroll,
     nearbyMapCamera, setNearbyMapCamera,
     searchQuery, setSearchQuery, searchSortMode, setSearchSortMode, searchScroll, setSearchScroll,
-    feedScroll, setFeedScroll,
+    feedScroll, setFeedScroll, refresh,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

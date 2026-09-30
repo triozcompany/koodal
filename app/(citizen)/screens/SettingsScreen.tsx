@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { Me } from '@/lib/domain/types';
+import { refreshApp } from '@/lib/refreshApp';
 import { useInstall } from '@/components/pwa/PwaProvider';
 
 interface ToggleDef { icon: string; label: string; sub: string; value: boolean; onChange: (v: boolean) => void; }
@@ -283,12 +284,11 @@ export function SettingsScreen({ me, meInitials, mob, setMe, clearVotes, onBack,
           onClick={() => setLangPickerOpen(true)}
         />
 
-        {showInstall && (
-          <>
-            <SectionLabel>App</SectionLabel>
-            <InfoRow icon="ph-download-simple" label="Install Koodal" sub="Add it to your home screen for a full-screen app" trailing="ph-caret-right" onClick={promptInstall} />
-          </>
-        )}
+        <SectionLabel>App</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {showInstall && <InfoRow icon="ph-download-simple" label="Install Koodal" sub="Add it to your home screen for a full-screen app" trailing="ph-caret-right" onClick={promptInstall} />}
+          <InfoRow icon="ph-arrows-clockwise" label="Refresh app" sub="Use if something looks stuck or broken" trailing="ph-caret-right" onClick={refreshApp} />
+        </div>
 
         <SectionLabel>Account</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
