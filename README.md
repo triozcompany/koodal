@@ -14,8 +14,9 @@
 
 [![Pitch Deck](https://img.shields.io/badge/📥_Pitch_Deck-View_%26_Download-F5B30A?style=for-the-badge)](https://ungakoodal.vercel.app/pitch)
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-ungakoodal.vercel.app-E8590C?style=for-the-badge)](https://ungakoodal.vercel.app)
+[![Videos, Demo & MVPs](https://img.shields.io/badge/🎬_Videos_%26_MVPs-Google_Drive-0F8B83?style=for-the-badge)](https://drive.google.com/drive/folders/1TgqQwe-fl_BlKD9noc_JsY8XaQktAov4?usp=sharing)
 
-**🌐 Live: [ungakoodal.vercel.app](https://ungakoodal.vercel.app) · 💻 Source: [github.com/triozcompany/koodal](https://github.com/triozcompany/koodal)**
+**🌐 Live: [ungakoodal.vercel.app](https://ungakoodal.vercel.app) · 💻 Source: [github.com/triozcompany/koodal](https://github.com/triozcompany/koodal) · 🎬 [Videos, demo & MVPs](https://drive.google.com/drive/folders/1TgqQwe-fl_BlKD9noc_JsY8XaQktAov4?usp=sharing)**
 
 **Built by TEAM TRIOZ for [Build with AI: Code for Communities](https://hack2skill.com/event/codeforcommunities2)**
 
