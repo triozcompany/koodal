@@ -52,6 +52,9 @@ export function TimelineSheet({ issue: d, mob, onVerify, onClose }: Props) {
               <span style={{ font: '500 10.5px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{ago(e.ts)}</span>
               <span style={{ font: '600 13px/1.25 Outfit,sans-serif' }}>{e.title}</span>
               {e.sub && <span style={{ font: '500 12.5px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{e.sub}</span>}
+              {e.photo && (
+                <img src={e.photo} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', marginTop: 2 }} />
+              )}
             </div>
           </div>
         );

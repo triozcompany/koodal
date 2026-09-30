@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import type { Issue } from '@/lib/domain/types';
-import { ago, corp } from '@/lib/domain/rules';
+import { ago, corp, proofPhotos } from '@/lib/domain/rules';
 import { AVB } from '@/lib/domain/stage-style';
 
 function nameHash(s: string): number {
@@ -45,12 +45,15 @@ export function VerifyScreen({ issue: d, mob, onBack, onValidate }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const photos    = d.evidence ?? [];
+  const afterPhotos = proofPhotos(d.fixProof);
   const confirmed = d.valYes ?? 0;
   const needed    = d.needed ?? 25;
   const abg       = AVB[nameHash(d.by) % AVB.length];
   const ai        = d.anon ? '' : initials(d.by);
   const officerAI = initials(d.assignee ?? 'JE Officer');
-  const afterCount = (d.fixProof?.length ?? 0) || 1;
+  const afterCount = afterPhotos.length || 1;
+  const beforeUrl = photos[beforeIdx]?.url;
+  const afterUrl = afterPhotos[afterIdx]?.url;
 
   function onPointerMove(e: React.PointerEvent) {
     if (!dragging.current) return;
@@ -119,7 +122,8 @@ export function VerifyScreen({ issue: d, mob, onBack, onValidate }: Props) {
           onPointerLeave={() => { dragging.current = false; }}
         >
           {/* BEFORE layer */}
-          <div style={{ position: 'absolute', inset: 0, background: `repeating-linear-gradient(${ANGLES[beforeIdx % 3]},var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)`, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', inset: 0, background: beforeUrl ? undefined : `repeating-linear-gradient(${ANGLES[beforeIdx % 3]},var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)`, pointerEvents: 'none' }}>
+            {beforeUrl && <img src={beforeUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
             <div style={{ position: 'absolute', top: 10, left: 10, height: 22, padding: '0 9px', borderRadius: 11, background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '700 10.5px/22px Outfit,sans-serif' }}>BEFORE</div>
             <span style={{ position: 'absolute', left: 10, bottom: 10, font: '600 11px/1 Outfit,sans-serif', color: '#fff', background: 'rgba(0,0,0,.45)', padding: '4px 8px', borderRadius: 6 }}>
               before · {beforeIdx + 1}/{Math.max(photos.length, 1)}
@@ -127,7 +131,8 @@ export function VerifyScreen({ issue: d, mob, onBack, onValidate }: Props) {
           </div>
 
           {/* AFTER layer — clipped from right */}
-          <div style={{ position: 'absolute', inset: 0, clipPath: `inset(0 ${100 - sliderX}% 0 0)`, background: `repeating-linear-gradient(${ANGLES[(afterIdx + 1) % 3]},var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)`, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', inset: 0, clipPath: `inset(0 ${100 - sliderX}% 0 0)`, background: afterUrl ? undefined : `repeating-linear-gradient(${ANGLES[(afterIdx + 1) % 3]},var(--cp-ph-a) 0 10px,var(--cp-ph-b) 10px 20px)`, pointerEvents: 'none' }}>
+            {afterUrl && <img src={afterUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
             <div style={{ position: 'absolute', top: 10, right: 10, height: 22, padding: '0 9px', borderRadius: 11, background: 'var(--cp-leaf)', color: '#fff', font: '700 10.5px/22px Outfit,sans-serif' }}>AFTER · PROOF</div>
             <span style={{ position: 'absolute', right: 10, bottom: 10, font: '600 11px/1 Outfit,sans-serif', color: '#fff', background: 'rgba(0,0,0,.45)', padding: '4px 8px', borderRadius: 6 }}>
               proof · {afterIdx + 1}/{afterCount}

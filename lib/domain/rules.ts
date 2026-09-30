@@ -1,4 +1,4 @@
-import type { Issue } from './types';
+import type { Issue, ProofPhoto } from './types';
 import { CATS, CITY, STAGES, SEVW, D, H } from './constants';
 import { SLA_PILL } from './stage-style';
 
@@ -9,6 +9,13 @@ export function deptFor(cat: string, city: string): string {
 
 export function corp(issue: Issue): string {
   return CITY[issue.city]?.corp ?? '';
+}
+
+/** rejectProof/fixProof hold real uploaded photos on every current write —
+ * the `string` arm only exists for older records that had a plain text
+ * label instead of a photo, so there's nothing to render for those. */
+export function proofPhotos(list?: (string | ProofPhoto)[]): ProofPhoto[] {
+  return (list ?? []).filter((p): p is ProofPhoto => typeof p !== 'string');
 }
 
 export function bump(issue: Issue, n: number): boolean {

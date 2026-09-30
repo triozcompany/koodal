@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { Issue } from '@/lib/domain/types';
 import { CATS, issueIcon } from '@/lib/domain/constants';
 import { PILL, AVB, SEGC, TRACK } from '@/lib/domain/stage-style';
-import { ago, step, slaLeft, corp } from '@/lib/domain/rules';
+import { ago, step, slaLeft, corp, proofPhotos } from '@/lib/domain/rules';
 import { uploadPhoto } from '@/lib/cloudinary/upload';
 import { Confetti } from '../components/Confetti';
 import { TimelineSheet } from '../components/TimelineSheet';
@@ -376,12 +376,57 @@ export function DetailScreen({
           <span style={{ font: '500 12px/1.3 Outfit,sans-serif', opacity: 0.92 }}>{d.dept} · {d.assignee ?? 'Unassigned'} · {slaLeft(d) || 'On track'}</span>
         </button>
       )}
-      {rejected && (
-        <div style={{ display: 'flex', gap: 10, padding: 14, borderRadius: 16, background: 'var(--cp-surface-2)' }}>
-          <i className="ph-bold ph-x-circle" style={{ fontSize: 20, flexShrink: 0 }} />
-          <span style={{ font: '500 12.5px/1.35 Outfit,sans-serif' }}>Not accepted by {corp(d)}{d.reject ? ` · ${d.reject}` : ''}</span>
-        </div>
-      )}
+      {rejected && (() => {
+        const rejectPhotos = proofPhotos(d.rejectProof);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, borderRadius: 16, background: 'var(--cp-surface-2)' }}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <i className="ph-bold ph-x-circle" style={{ fontSize: 20, flexShrink: 0 }} />
+              <span style={{ font: '500 12.5px/1.35 Outfit,sans-serif' }}>Not accepted by {corp(d)}{d.reject ? ` · ${d.reject}` : ''}</span>
+            </div>
+            {d.rejectNote && (
+              <span style={{ font: '500 12.5px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{d.rejectNote}</span>
+            )}
+            {d.rejectRef && (
+              <span style={{ font: '600 12px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>References case {d.rejectRef}</span>
+            )}
+            {rejectPhotos.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: mob ? 'repeat(auto-fill,minmax(72px,1fr))' : 'repeat(auto-fill,minmax(110px,1fr))', gap: 6 }}>
+                {rejectPhotos.map((p, k) => (
+                  <div key={k} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden' }}>
+                    <img src={p.url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <span style={{ position: 'absolute', left: 5, bottom: 5, font: '600 9.5px/1 Outfit,sans-serif', color: '#fff', background: 'rgba(0,0,0,.45)', padding: '2px 5px', borderRadius: 5 }}>{p.by} · {ago(p.ts)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+      {(d.stage === 'resolved' || d.stage === 'closed') && (d.fixNote || proofPhotos(d.fixProof).length > 0) && (() => {
+        const fixPhotos = proofPhotos(d.fixProof);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, borderRadius: 16, background: 'var(--cp-leaf-soft,#ecfdf5)', border: '1px solid var(--cp-leaf,#2DA84E)' }}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <i className="ph-bold ph-seal-check" style={{ fontSize: 20, flexShrink: 0, color: 'var(--cp-leaf,#2DA84E)' }} />
+              <span style={{ font: '600 12.5px/1.35 Outfit,sans-serif' }}>Marked fixed by {corp(d)}</span>
+            </div>
+            {d.fixNote && (
+              <span style={{ font: '500 12.5px/1.4 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{d.fixNote}</span>
+            )}
+            {fixPhotos.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: mob ? 'repeat(auto-fill,minmax(72px,1fr))' : 'repeat(auto-fill,minmax(110px,1fr))', gap: 6 }}>
+                {fixPhotos.map((p, k) => (
+                  <div key={k} style={{ position: 'relative', aspectRatio: '1', borderRadius: 12, overflow: 'hidden' }}>
+                    <img src={p.url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <span style={{ position: 'absolute', left: 5, bottom: 5, font: '600 9.5px/1 Outfit,sans-serif', color: '#fff', background: 'rgba(0,0,0,.45)', padding: '2px 5px', borderRadius: 5 }}>{p.by} · {ago(p.ts)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {hasLinked && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -438,6 +483,9 @@ export function DetailScreen({
             <span style={{ font: '500 10.5px/1 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{ago(e.ts)}</span>
             <span style={{ font: '600 13px/1.25 Outfit,sans-serif' }}>{e.title}</span>
             {e.sub && <span style={{ font: '500 12.5px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{e.sub}</span>}
+            {e.photo && (
+              <img src={e.photo} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', marginTop: 2 }} />
+            )}
           </div>
         </div>
       ))}
