@@ -9,6 +9,7 @@ import { OrgTypes } from './_components/OrgTypes';
 import { Pricing } from './_components/Pricing';
 import { Trust } from './_components/Trust';
 import { Faq } from './_components/Faq';
+import { GuideSection } from './_components/GuideSection';
 import { CtaBand } from './_components/CtaBand';
 import { Footer } from './_components/Footer';
 
@@ -29,6 +30,7 @@ export default function LandingPage() {
       <OrgTypes />
       <Pricing />
       <Trust />
+      <GuideSection />
       <Faq />
       <CtaBand />
       <Footer />

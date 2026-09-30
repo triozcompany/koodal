@@ -21,7 +21,7 @@ export function Navbar() {
 
   return (
     <header style={s('position:sticky;top:14px;z-index:60;padding:0 16px;margin-top:14px')}>
-      <div style={{
+      <div className="kd-navbar-in" style={{
         ...s('max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:14px;height:64px;padding:0 10px 0 18px;box-sizing:border-box;border-radius:20px;backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);transition:background .3s,box-shadow .3s,border-color .3s'),
         background: scrolled ? 'rgb(255 255 255 / .82)' : 'rgb(255 255 255 / .55)',
         border: `1px solid ${scrolled ? '#efe7df' : 'rgb(255 255 255 / .6)'}`,
@@ -39,10 +39,13 @@ export function Navbar() {
           {NAV_SECTIONS.map(([l, id]) => (
             <button key={id} className="kd-navlink" onClick={() => scrollToSection(id)}>{l}</button>
           ))}
+          <Link href="/guide" className="kd-navlink">Guide</Link>
         </nav>
+        {/* Section links are hidden below 1100px; the guide stays one tap away. */}
+        <Link href="/guide" className="kd-iconbtn kd-nav-guide" aria-label="Platform guide"><i className="ph-bold ph-book-open-text" style={{ fontSize: 18 }} /></Link>
 
-        <Link href="/nearby" className="kd-btn nav light">
-          <i className="ph-bold ph-user" /><span className="kd-desk-only">Koodal App</span><span className="kd-mob-only">App</span>
+        <Link href="/nearby" className="kd-btn nav light" aria-label="Koodal App">
+          <i className="ph-bold ph-user" /><span className="kd-desk-only">Koodal App</span><span className="kd-mob-only kd-nav-applabel">App</span>
         </Link>
         <Link href="/console/get-started" className="kd-btn nav">
           <i className="ph-bold ph-identification-badge" /><span className="kd-desk-only">Koodal Console</span><span className="kd-mob-only">Console</span>

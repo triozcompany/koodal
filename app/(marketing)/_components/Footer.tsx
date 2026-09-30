@@ -3,7 +3,7 @@ import { s } from './s';
 
 const GROUPS: [string, [string, string][]][] = [
   ['Product', [['Koodal app', '/nearby'], ['Koodal Console', '/console/sign-in'], ['Join an organization', '/nearby'], ['Pricing', '/#pricing']]],
-  ['Platform', [['How it works', '/#product'], ['Get started', '/console/get-started']]],
+  ['Platform', [['How it works', '/#product'], ['Platform guide', '/guide'], ['Get started', '/console/get-started']]],
   ['Company', [['Pitch deck', '/pitch'], ['Contact us', 'mailto:hello@koodal.app'], ['Privacy & terms', '#']]],
 ];
 

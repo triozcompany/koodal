@@ -87,23 +87,23 @@ Open any issue directly at `/issues/<ID>`, for example http://localhost:3000/iss
 
 ### Console (Window B)
 1. Go to `/console/sign-in` and tap the **GCC-1001** card. The ID and password fill in.
-   ![Console sign-in: pick a test account](guide/10-console-signin-pick.jpg)
+   ![Console sign-in: pick a test account](../public/guide/10-console-signin-pick.jpg)
 2. Tap **Continue**.
-   ![Continue](guide/10-console-signin-continue.jpg)
+   ![Continue](../public/guide/10-console-signin-continue.jpg)
 3. Tap **Use test code 123456**, then **Verify & continue**.
-   ![Code screen](guide/10-console-code.jpg)
+   ![Code screen](../public/guide/10-console-code.jpg)
 4. You land on Home.
-   ![Console home](guide/10-console-home.jpg)
+   ![Console home](../public/guide/10-console-home.jpg)
 
 ### Citizen (Window A)
 1. Go to http://localhost:3000, tap **Log in**, then tap **Kavya Raman · 90000 00001**.
-   ![Citizen phone step](guide/10-citizen-phone.jpg)
+   ![Citizen phone step](../public/guide/10-citizen-phone.jpg)
 2. Tap **Send OTP**.
-   ![Send OTP](guide/10-citizen-send.jpg)
+   ![Send OTP](../public/guide/10-citizen-send.jpg)
 3. The code fills itself in. Tap **Verify**.
-   ![OTP](guide/10-citizen-otp.jpg)
+   ![OTP](../public/guide/10-citizen-otp.jpg)
 4. You land on **Nearby**. Kavya is already verified, so there is no onboarding.
-   ![Nearby](guide/10-citizen-nearby.jpg)
+   ![Nearby](../public/guide/10-citizen-nearby.jpg)
 
 ---
 
@@ -112,21 +112,21 @@ Open any issue directly at `/issues/<ID>`, for example http://localhost:3000/iss
 Use a fresh window (not signed in) with **90000 00009**.
 
 1. The intro has three slides. Tap **Next**…
-   ![Intro](guide/09-onb-intro.jpg)
+   ![Intro](../public/guide/09-onb-intro.jpg)
 2. …then **Get started**.
-   ![Intro, last slide](guide/09-onb-intro3.jpg)
+   ![Intro, last slide](../public/guide/09-onb-intro3.jpg)
 3. Tap **New citizen · 90000 00009**, then **Send OTP**, then **Verify**.
-   ![Phone](guide/09-onb-phone.jpg)
+   ![Phone](../public/guide/09-onb-phone.jpg)
 4. Tap **Use demo Aadhaar**…
-   ![Aadhaar](guide/09-onb-aadhaar.jpg)
+   ![Aadhaar](../public/guide/09-onb-aadhaar.jpg)
 5. …then **Verify identity**, then **Continue**.
-   ![Verify identity](guide/09-onb-aadhaar-verify.jpg)
+   ![Verify identity](../public/guide/09-onb-aadhaar-verify.jpg)
 6. Type a name, pick an area (for example *Velachery, Chennai*), then tap **Continue**.
-   ![Profile](guide/09-onb-profile.jpg)
+   ![Profile](../public/guide/09-onb-profile.jpg)
 7. Tap **Allow location**.
-   ![Permissions](guide/09-onb-permissions.jpg)
+   ![Permissions](../public/guide/09-onb-permissions.jpg)
 8. You are in the app.
-   ![Done](guide/09-onb-done.jpg)
+   ![Done](../public/guide/09-onb-done.jpg)
 
 ---
 
@@ -135,25 +135,25 @@ Use a fresh window (not signed in) with **90000 00009**.
 **Window A, Kavya.** This is the full "report, then support" loop, using all five test citizens.
 
 1. On Nearby, tap the **camera** button.
-   ![Camera button](guide/01-new-camera-button.jpg)
+   ![Camera button](../public/guide/01-new-camera-button.jpg)
 2. Take a photo, or tap the **gallery** icon and pick a garbage photo. A good one is `public/seed/garb1.webp`.
-   ![Camera](guide/01-new-camera.jpg)
+   ![Camera](../public/guide/01-new-camera.jpg)
 3. Enter a title such as *Garbage dumped near Vijayanagar bus stand*, pick the **Garbage** category, and add a short description. The location fills in from GPS.
-   ![Report form](guide/01-new-form.jpg)
+   ![Report form](../public/guide/01-new-form.jpg)
 4. Scroll down and **drag the orange arrow** to the right to report.
-   ![Slide to report](guide/01-new-slide.jpg)
+   ![Slide to report](../public/guide/01-new-slide.jpg)
 5. The AI analysis screen runs.
-   ![AI scanning](guide/01-new-ai-scanning.jpg)
+   ![AI scanning](../public/guide/01-new-ai-scanning.jpg)
 6. It shows **No similar issue nearby**. Tap **Post as new issue**.
-   ![AI result](guide/01-new-ai-result.jpg)
+   ![AI result](../public/guide/01-new-ai-result.jpg)
 7. The report is live: 1 supporter at 24%. Note its ID (for example CP-2201).
-   ![Posted](guide/01-new-posted.jpg)
+   ![Posted](../public/guide/01-new-posted.jpg)
 8. Sign in as **Arjun (90000 00002)** and open the report: search for it, or go to `/issues/<ID>`. **Press and hold "Hold to support"** until the button fills.
-   ![Supporter 2](guide/01-support-user2.jpg)
+   ![Supporter 2](../public/guide/01-support-user2.jpg)
 9. Repeat as **Meena (…03)** and **Karthik (…04)**. After Karthik the report has 4 supporters. When **Lakshmi (…05)** supports it, it reaches **5 supporters and becomes an official case**, and the celebration modal opens.
-   ![5th supporter: case created](guide/01-support-user5-case.jpg)
+   ![5th supporter: case created](../public/guide/01-support-user5-case.jpg)
 10. Tap **Track verification** to open the case.
-    ![Case view](guide/01-support-user5-track.jpg)
+    ![Case view](../public/guide/01-support-user5-track.jpg)
 
 In Window B, Console Home now lists this report under **Needs your decision**.
 
@@ -166,13 +166,13 @@ In Window B, Console Home now lists this report under **Needs your decision**.
 **Window A, Kavya.** At the default Velachery location, the seeded CP-S1 pothole is about 60 m away.
 
 1. Tap the camera, pick a pothole photo (for example `public/seed/road2.webp`), choose **Roads**, add a title, and slide to report.
-   ![Pothole report](guide/02-join-form.jpg)
+   ![Pothole report](../public/guide/02-join-form.jpg)
 2. The AI screen finds **1 match nearby**. Tap **1 match nearby · See it**.
-   ![Match found](guide/02-join-ai.jpg)
+   ![Match found](../public/guide/02-join-ai.jpg)
 3. The match screen shows CP-S1. Tap **Join 2 neighbours**. The other button, **Mine is different**, would post a separate report.
-   ![Join](guide/02-join-match.jpg)
+   ![Join](../public/guide/02-join-match.jpg)
 4. You are now a supporter of CP-S1 (2 → 3), and your photo is added to it. **Joining counts as a support**, so when joining takes an issue over the threshold, it becomes a case exactly as if you had tapped Support.
-   ![Joined](guide/02-join-joined.jpg)
+   ![Joined](../public/guide/02-join-joined.jpg)
 
 ---
 
@@ -182,51 +182,51 @@ In Window B, Console Home now lists this report under **Needs your decision**.
 
 ### 5a. Already over the threshold: CP-S2A
 It is already an **official case** (CP-CHN-24821) with 7 supporters, waiting for the Console to decide. Support is closed; the bottom button is **Track official case**. In the Console (GCC-1001) it is under Home → **Needs your decision**, with Approve and Reject.
-![CP-S2A](guide/03-s2a-official.jpg)
+![CP-S2A](../public/guide/03-s2a-official.jpg)
 
 ### 5b. Crosses only if you support (supporter rule): CP-S2B
 1. It has 4 supporters at 48%. **Hold to support**.
-   ![CP-S2B before](guide/03-s2b-before.jpg)
+   ![CP-S2B before](../public/guide/03-s2b-before.jpg)
 2. It reaches 5 supporters, so it becomes an official case.
-   ![CP-S2B case](guide/03-s2b-case.jpg)
+   ![CP-S2B case](../public/guide/03-s2b-case.jpg)
 
 ### 5b (variant). Crosses on the confidence rule: CP-S2C
 1. It has 3 supporters at 74%. **Hold to support**.
-   ![CP-S2C before](guide/03-s2c-before.jpg)
+   ![CP-S2C before](../public/guide/03-s2c-before.jpg)
 2. Confidence reaches 82%, which is over 80%, so it becomes a case with only 4 supporters.
-   ![CP-S2C case](guide/03-s2c-case.jpg)
+   ![CP-S2C case](../public/guide/03-s2c-case.jpg)
 
 ### 5c. Still short after you support: CP-S2D
 1. It has 2 supporters at 32%. **Hold to support**.
-   ![CP-S2D before](guide/03-s2d-before.jpg)
+   ![CP-S2D before](../public/guide/03-s2d-before.jpg)
 2. It moves to 3 supporters and 40%. It is **not** a case yet: review starts at 5 supporters or 80% confidence.
-   ![CP-S2D after](guide/03-s2d-after.jpg)
+   ![CP-S2D after](../public/guide/03-s2d-after.jpg)
 
 **Window B, Console Home:** the new cases appear under **Needs your decision**.
-![Console: needs your decision](guide/03-console-needs-decision.jpg)
+![Console: needs your decision](../public/guide/03-console-needs-decision.jpg)
 
 ---
 
 ## 6. An issue you already support
 
 **Window A.** Open **CP-S3**. Kavya supported it earlier, and it has since become an official case assigned to the Water & Drainage Team. Official cases no longer take support; the bottom button is **Track official case**.
-![CP-S3](guide/04-s3-supported.jpg)
+![CP-S3](../public/guide/04-s3-supported.jpg)
 
 The **Cases** tab (bottom right), under **Following**, lists the cases you reported or supported, CP-S3 among them.
-![Cases tab](guide/04-cases-tab.jpg)
+![Cases tab](../public/guide/04-cases-tab.jpg)
 
 ---
 
 ## 7. Completed case
 
 1. **CP-S4** is closed. It shows the department's fix note and proof photo, and citizens confirmed the fix.
-   ![CP-S4 closed](guide/05-s4-closed.jpg)
+   ![CP-S4 closed](../public/guide/05-s4-closed.jpg)
 2. **CP-S4B** has been marked fixed and has 2 of 3 confirmations. Tap **Check the fix**.
-   ![CP-S4B](guide/05-s4b-check.jpg)
+   ![CP-S4B](../public/guide/05-s4b-check.jpg)
 3. Compare the before and after photos, then tap **Fixed**.
-   ![Is it fixed?](guide/05-s4b-verify.jpg)
+   ![Is it fixed?](../public/guide/05-s4b-verify.jpg)
 4. That is the 3rd confirmation, so the case **closes**.
-   ![CP-S4B closed](guide/05-s4b-closed.jpg)
+   ![CP-S4B closed](../public/guide/05-s4b-closed.jpg)
 
 *(Three "Not yet" answers would reopen the case instead.)*
 
@@ -237,40 +237,40 @@ The **Cases** tab (bottom right), under **Following**, lists the cases you repor
 Put both windows side by side. **Window A:** Kavya on **CP-S5**. **Window B:** the Console signed in as **GCC-2041** (Roads).
 
 1. **Citizen:** CP-S5 is **Assigned** to the Roads Team.
-   ![Citizen: assigned](guide/06-s5-citizen-assigned.jpg)
+   ![Citizen: assigned](../public/guide/06-s5-citizen-assigned.jpg)
 2. **Console:** open Cases → *Road cave-in near Phoenix Mall signal* (or `/console/cases/CP-S5`), then tap **Start work on site**.
-   ![Console: start work](guide/06-s5-console-start.jpg)
+   ![Console: start work](../public/guide/06-s5-console-start.jpg)
 3. **Citizen, without refreshing:** the stage changes to **In progress**.
-   ![Citizen: in progress](guide/06-s5-citizen-progress.jpg)
+   ![Citizen: in progress](../public/guide/06-s5-citizen-progress.jpg)
 4. **Console:** tap **Mark as fixed**, add an after photo (for example `public/seed/fix2.webp`), write a short note, then tap **Send for confirmation**.
-   ![Console: mark fixed](guide/06-s5-console-markfixed.jpg)
+   ![Console: mark fixed](../public/guide/06-s5-console-markfixed.jpg)
 5. **Citizen, without refreshing:** the case shows **Marked fixed** and offers **Check the fix**. Finish it the same way as CP-S4B in section 7. In test mode, 3 confirmations close a case.
-   ![Citizen: fixed](guide/06-s5-citizen-fixed.jpg)
+   ![Citizen: fixed](../public/guide/06-s5-citizen-fixed.jpg)
 
 ---
 
 ## 9. Analytics
 
 **Window B, GCC-1001.** Open **Insights**. It shows 90 days of seeded Chennai history plus anything you did in this session: opened vs fixed, resolution time, on-time %, department performance, the hotspot matrix, recurring cases and reopened cases. Change **When**, **Area**, **Department** or **Problem type** to filter.
-![Insights](guide/08-insights.jpg)
+![Insights](../public/guide/08-insights.jpg)
 
-[Full-page Insights screenshot](guide/08-insights-full.jpg)
+[Full-page Insights screenshot](../public/guide/08-insights-full.jpg)
 
 The **Cases** list shows every Chennai case with its status and target date.
-![Cases list](guide/08-cases-list.jpg)
+![Cases list](../public/guide/08-cases-list.jpg)
 
 ---
 
 ## 10. Admin: test mode and thresholds
 
-**Window B, GCC-1001 → Settings.** Only an **admin** sees the **Test mode & thresholds** card. Staff accounts such as GCC-2041 do not ([screenshot](guide/11-staff-settings-no-testmode.jpg)).
+**Window B, GCC-1001 → Settings.** Only an **admin** sees the **Test mode & thresholds** card. Staff accounts such as GCC-2041 do not ([screenshot](../public/guide/11-staff-settings-no-testmode.jpg)).
 
 1. **Test mode** switch. While it is on:
    - both sign-in pages list the test accounts;
    - **Seed data**, **Reset seed data** and **Remove all data** are enabled.
 
    Turn it off before a real demo audience signs in.
-   ![Test mode](guide/00-settings-testmode.jpg)
+   ![Test mode](../public/guide/00-settings-testmode.jpg)
 2. **Thresholds:**
    - supporters to open a case (5);
    - or confidence (80%);
@@ -278,7 +278,7 @@ The **Cases** list shows every Chennai case with its status and target date.
    - confirmations needed to close a fixed case.
 
    Set the last one to **3** for the demo, so the five test citizens can close a case. Then tap **Save thresholds**. The changes apply immediately (the citizen app picks them up on its next page load).
-   ![Thresholds](guide/00-settings-thresholds.jpg)
+   ![Thresholds](../public/guide/00-settings-thresholds.jpg)
 3. **Reset seed data** deletes:
    - the seeded records;
    - the older sample cases;
@@ -286,8 +286,8 @@ The **Cases** list shows every Chennai case with its status and target date.
    - the test citizens themselves.
 
    It then seeds a fresh copy. Reports from real citizens are kept. Confirm in the drawer.
-   ![Reset confirm](guide/00-reset-confirm.jpg)
-   ![Reset done](guide/00-reset-done.jpg)
+   ![Reset confirm](../public/guide/00-reset-confirm.jpg)
+   ![Reset done](../public/guide/00-reset-done.jpg)
 4. **Seed data** adds the seed set without deleting anything else.
 5. **Remove all data** deletes every report and case (real ones too), every citizen profile and the ID counters. Staff accounts and settings are kept. You must type `DELETE` to confirm.
 
