@@ -14,7 +14,6 @@
 
 [![Pitch Deck](https://img.shields.io/badge/📥_Pitch_Deck-View_%26_Download-F5B30A?style=for-the-badge)](https://ungakoodal.vercel.app/pitch)
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-ungakoodal.vercel.app-E8590C?style=for-the-badge)](https://ungakoodal.vercel.app)
-[![Demo Video](https://img.shields.io/badge/🎬_Demo_Video-Coming_soon-0F8B83?style=for-the-badge)](#-submission-checklist)
 
 **🌐 Live: [ungakoodal.vercel.app](https://ungakoodal.vercel.app) · 💻 Source: [github.com/triozcompany/koodal](https://github.com/triozcompany/koodal)**
 
@@ -23,18 +22,6 @@
 </div>
 
 ---
-
-## 🏆 Hackathon
-
-| | |
-|---|---|
-| **Event** | Build with AI: Code for Communities, a Google Cloud hackathon by GDG India on Hack2Skill |
-| **Theme** | Solving for India: Indian developers, Indian problems, Indian scale |
-| **Track** | **01 · AI for Digital Public Infrastructure & Governance** (Innovation) |
-| **Prize pool** | INR 10 lakh + Google Cloud credits for top teams |
-| **Register / details** | [hack2skill.com/event/codeforcommunities2](https://hack2skill.com/event/codeforcommunities2) |
-
-> **The challenge:** governments struggle to consolidate citizen feedback and align it with infrastructure priorities. Requests live in fragmented systems, so spending is misaligned and gaps go unaddressed. Build a scalable, multilingual AI platform, designed as a Digital Public Good, that aggregates citizen requests and surfaces demand hotspots for policymakers.
 
 ## 💡 What is Koodal?
 
@@ -54,9 +41,28 @@
 
 **Impact:** people get a voice and see what happens to their reports. Organizations get fewer duplicates, clear priorities and data on which problems keep coming back.
 
-This repo is the hackathon MVP (originally named CivicPulse), focused on the civic / government use case for Tamil Nadu. See [Built vs roadmap](#built-vs-roadmap) for what is implemented today.
+Koodal started life as CivicPulse, a civic issue app for Tamil Nadu, and is growing into a platform for every kind of community. See [Built vs roadmap](#built-vs-roadmap) for what is live today.
 
 **📖 [View the pitch deck](https://ungakoodal.vercel.app/pitch) in the app, or [download the PDF](https://ungakoodal.vercel.app/docs/Koodal_Platform_Pitch_Deck.pdf)** (also in the repo: [`public/docs/Koodal_Platform_Pitch_Deck.pdf`](public/docs/Koodal_Platform_Pitch_Deck.pdf)).
+
+## 📒 Koodal's report card
+
+| At a glance | |
+|---|---|
+| 🗣 **12** | Indian languages |
+| 🎁 **14 days** | free trial, no card needed |
+| 💸 **from ₹999** | per month, members never pay |
+| 🎯 **80%** | community support opens an official case |
+
+| Subject | What Koodal does | Remark |
+|---|---|---|
+| 📸 **Reporting** | Photo, text or voice note, in your own language | *Takes a minute. Excuses not accepted.* |
+| 👥 **Verification** | Neighbours support and add evidence; enough support opens an official case | *Plays well with others.* |
+| 🛠 **Fixing** | Staff accept, assign the right team, track deadlines and post proof | *Always shows their work.* |
+| ✅ **Trust** | A public timeline; a case closes only when members confirm, and reopens if not | *Never marks its own homework.* |
+| 🧩 **Duplicates** | The same problem filed ten times becomes one case with ten voices | *Hates repeating itself.* |
+| 🔁 **One account** | Switch between your city, apartment and campus in a tap | *Gets around.* |
+| 🤝 **Fair pricing** | Organizations subscribe, members never pay | *Everyone's favourite.* |
 
 ## 🔁 The loop
 
@@ -70,23 +76,14 @@ The full flow diagram is in [Architecture](#-architecture) below.
 5. **Team acts:** pending approval → assigned → in progress, with SLA breaches shown on the public case timeline.
 6. **Members confirm:** before/after proof is posted and neighbours vote *Fixed* or *Not yet*. A rejected fix reopens the case.
 
-## 🧠 How Google AI is used
+## 🧰 What Koodal is built with
 
-| Where | What | Status |
-|---|---|---|
-| Gemini (`@google/generative-ai`, `lib/gemini.ts`) | Classify a report: category, severity, department, title, summary | ✅ Built |
-| Gemini | Similar-issue / duplicate matching against nearby cases | ✅ Built |
-| Google Maps Platform, BigQuery, Speech-to-Text, Translation API | Demand hotspots, voice and messaging intake, multilingual UI at national scale | 🗺 Roadmap |
-
-## 🎯 Judging criteria → Koodal
-
-| Weight | Criterion | Koodal's answer |
-|---|---|---|
-| 20% | Problem–solution fit | Turns scattered citizen complaints into verified, prioritized, tracked cases |
-| 25% | AI / technical execution | Gemini classification and dedup wired into a working end-to-end report flow on Firestore |
-| 20% | Depth & reach across India | Multi-tenant by design: any organization type, any language, any state |
-| 15% | Impact potential | Community verification plus public SLA timelines make outcomes measurable |
-| 20% | Deployability & scalability | Small stack (Next.js, Firebase, Gemini), deployable on Vercel or Cloud Run, PWA-ready |
+| | |
+|---|---|
+| 🖥 **Apps** | Next.js and TypeScript on Vercel: the installable PWA for members and the web Console for teams |
+| 🔥 **Firebase** | Auth, Firestore (org-scoped data), Storage for photos and proof, push notifications |
+| ✨ **Gemini** | Multilingual voice-to-report and case triage (category, severity, team), with staff making every decision |
+| 🗺 **Google Maps** | Location, pins and nearby issues |
 
 ## 🏗 Architecture
 
@@ -161,28 +158,11 @@ _These are targets, not results._
 | ✅ Built in this repo | 🗺 Roadmap (shown in the deck) |
 |---|---|
 | Citizen app: nearby map and list, feed, search, cases, report flow, duplicate handling, profile, settings | Team/government workflow screens on live data |
-| Gemini report analysis, Firestore persistence, email/password auth | Multi-tenant organizations, billing, platform admin |
+| Firestore persistence, email/password auth | Multi-tenant organizations, billing, platform admin |
 | | Voice / WhatsApp intake, 12-language UI, policymaker hotspot analytics |
 
-## 🗓 Hackathon timeline
-
-| Date (2026) | Milestone |
-|---|---|
-| 11 Aug – 30 Sep | Registration, team formation and prototype submission |
-| 1 – 15 Oct | Prototype evaluation |
-| 16 Oct | Top 20 shortlist announced |
-| 23 Oct | Virtual Demo Day |
-| Oct (TBA) | In-person Demo Day |
-
-## ✅ Submission checklist
-
-- [x] Source code: [github.com/triozcompany/koodal](https://github.com/triozcompany/koodal)
-- [x] Pitch deck: [`public/docs/Koodal_Platform_Pitch_Deck.pdf`](public/docs/Koodal_Platform_Pitch_Deck.pdf) (20 slides, also at [`/pitch`](https://ungakoodal.vercel.app/pitch))
-- [ ] Demo video (3–5 min): _TODO_
-- [x] Deployed link: [ungakoodal.vercel.app](https://ungakoodal.vercel.app)
-- [x] Short description: see [below](#submission-description)
-
-### Submission description
+<details>
+<summary><b>Short description (for forms)</b></summary>
 
 > Koodal is a multi-tenant platform where any organization (city corporation, apartment, university or institution) gets its own space to report, verify, fix and confirm local issues.
 >
@@ -194,16 +174,16 @@ _These are targets, not results._
 >
 > Built with Next.js, Firebase, Gemini and Google Maps by Team TRIOZ.
 
+</details>
+
 ## 👥 Team TRIOZ
 
-| | Member | Role | Links |
+> **Student:** Koodal · **Class:** Communities of India · **Class teacher:** everyone who reports an issue
+
+| | Member | Role | Find them |
 |---|---|---|---|
 | 🧭 | **Santhosh S** | Team Leader | [GitHub](https://github.com/itzthesandy) · [LinkedIn](https://www.linkedin.com/in/itzthesandy) |
 | 💻 | **Aakash T** | Team Member | [GitHub](https://github.com/CyberAakash) · [LinkedIn](https://www.linkedin.com/in/cyberaakash/) |
-
----|---|---|
-| 🧭 | **Santhosh S** | Team Leader |
-| 💻 | **Aakash T** | Team Member |
 
 ---
 
