@@ -175,7 +175,7 @@ function MapInner() {
 
       <section style={{ position: 'relative', overflow: 'hidden', background: 'var(--cp-map)', minWidth: 0 }}>
         <ConsoleMap cases={shown} hotspots={hotspots} emerging={emerging} showCases={layers.cases} showHotspots={layers.hotspots} showEmerging={layers.emerging}
-          selectedId={sel} hoverId={hover} fitKey={fitKey} onPick={pick} initialCamera={initialCamera} onCameraChange={(c) => { mapState.current.camera = c; }} fullscreen={full} onToggleFullscreen={() => setFull((f) => !f)} />
+          selectedId={sel} hoverId={hover} fitKey={fitKey} onPick={pick} onMapClick={() => setSel(null)} initialCamera={initialCamera} onCameraChange={(c) => { mapState.current.camera = c; }} fullscreen={full} onToggleFullscreen={() => setFull((f) => !f)} />
 
         <div style={{ position: 'absolute', left: 14, right: 72, top: 14, display: 'flex', gap: 8, flexWrap: 'wrap', zIndex: 6 }}>
           {!mob && !listOpen && !full && (
@@ -198,13 +198,12 @@ function MapInner() {
 
         {selIssue && selRow && (
           <div data-cp-theme="dark" onClick={() => router.push(`/console/cases/${selIssue.id}`)}
-            style={{ position: 'absolute', right: 14, bottom: mob ? 76 : 14, width: mob ? 'calc(100% - 28px)' : 380, boxSizing: 'border-box', borderRadius: 22, background: '#0d0d0d', color: '#f5f5f5', border: '1px solid #262626', boxShadow: '0 24px 50px -18px rgb(0 0 0 / .55)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'cp-row .3s cubic-bezier(.2,.9,.3,1.2) both', zIndex: 9, cursor: 'pointer' }}>
-            <div style={{ position: 'relative', height: mob ? 96 : 130, flex: 'none', background: selPhoto ? `center/cover url(${selPhoto})` : 'repeating-linear-gradient(135deg,#1a1a1a 0 12px,#222 12px 24px)' }}>
+            style={{ position: 'absolute', right: 14, bottom: mob ? 72 : 14, width: mob ? 'calc(100% - 28px)' : 380, boxSizing: 'border-box', borderRadius: 22, background: '#0d0d0d', color: '#f5f5f5', border: '1px solid #262626', boxShadow: '0 24px 50px -18px rgb(0 0 0 / .55)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'cp-row .3s cubic-bezier(.2,.9,.3,1.2) both', zIndex: 9, cursor: 'pointer' }}>
+            <div style={{ position: 'relative', height: mob ? 72 : 130, flex: 'none', background: selPhoto ? `center/cover url(${selPhoto})` : 'repeating-linear-gradient(135deg,#1a1a1a 0 12px,#222 12px 24px)' }}>
               <span style={{ position: 'absolute', left: 12, top: 12, display: 'inline-flex', alignItems: 'center', gap: 5, height: 26, padding: '0 10px', borderRadius: 999, background: selRow.stageBg, color: selRow.stageFg, font: '600 11.5px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}><i className={`ph-bold ${selRow.stageIcon}`} />{selRow.stageShort}</span>
-              <button onClick={(e) => { e.stopPropagation(); setSel(null); }} title="Close" style={{ position: 'absolute', right: 10, top: 10, width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgb(0 0 0 / .55)', color: '#fff', cursor: 'pointer', fontSize: 13 }}><i className="ph-bold ph-x" /></button>
               <span style={{ position: 'absolute', right: 10, bottom: 10, display: 'flex', alignItems: 'center', gap: 5, height: 26, padding: '0 9px', borderRadius: 9, background: '#141414', font: '600 11.5px/1 Outfit,sans-serif' }}><i className="ph-bold ph-images" />{selIssue.evidence.length}</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px 16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: mob ? 8 : 10, padding: mob ? '10px 12px 12px' : '14px 16px 16px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
                 <span style={{ font: '500 12px/1.2 Outfit,sans-serif', color: '#8a8a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selRow.ref} · {selRow.meta}</span>
                 <span style={{ font: '600 16px/1.25 Outfit,sans-serif', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{selRow.title}</span>

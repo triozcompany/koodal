@@ -36,6 +36,8 @@ interface Props {
   hoverId: string | null;
   fitKey: string;
   onPick: (id: string) => void;
+  /** A tap on empty map (pins and clusters stop their own clicks). */
+  onMapClick?: () => void;
   fullscreen: boolean;
   onToggleFullscreen: () => void;
   /** Saved view to reopen at (returning from a case). Read once, at mount. */
@@ -98,6 +100,8 @@ export function ConsoleMap(p: Props) {
   const areaMarkers = useRef<maplibregl.Marker[]>([]);
   const pickRef = useRef(p.onPick);
   pickRef.current = p.onPick;
+  const mapClickRef = useRef(p.onMapClick);
+  mapClickRef.current = p.onMapClick;
   const cameraRef = useRef(p.onCameraChange);
   cameraRef.current = p.onCameraChange;
   const initialCamera = useRef(p.initialCamera).current;
@@ -120,6 +124,7 @@ export function ConsoleMap(p: Props) {
     mapRef.current = map;
     map.on('error', (e) => console.error('ConsoleMap: map error:', e.error?.message ?? e));
     map.on('load', () => setReady(true));
+    map.on('click', () => mapClickRef.current?.());
     map.on('zoomend', () => setView((v) => v + 1));
     // Fires once a gesture settles, so it is safe to report straight through.
     map.on('moveend', () => {

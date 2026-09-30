@@ -23,6 +23,8 @@ interface Props {
   selectedId?: string | null;
   focusId?: string | null;
   onPinClick: (id: string) => void;
+  /** A tap on empty map (pins and clusters stop their own clicks). */
+  onMapClick?: () => void;
   maximized: boolean;
   onToggleMaximize: () => void;
   mob: boolean;
@@ -83,12 +85,14 @@ function pinElement(issue: Issue, selected: boolean, onClick: () => void): HTMLD
 const mapBtnStyle: React.CSSProperties = { width: 42, height: 42, borderRadius: '50%', border: '1px solid var(--cp-line)', background: 'var(--cp-surface)', color: 'var(--cp-ink)', boxShadow: '0 4px 14px -6px rgb(0 0 0 / .2)', cursor: 'pointer', fontSize: 17, display: 'grid', placeItems: 'center' };
 const zoomBtnStyle: React.CSSProperties = { width: 42, height: 42, border: 'none', background: 'none', color: 'var(--cp-ink)', cursor: 'pointer', fontSize: 17 };
 
-export function NearbyMap({ issues, selectedId, focusId, onPinClick, maximized, onToggleMaximize, mob, initialCamera, onCameraChange }: Props) {
+export function NearbyMap({ issues, selectedId, focusId, onPinClick, onMapClick, maximized, onToggleMaximize, mob, initialCamera, onCameraChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const onPinClickRef = useRef(onPinClick);
   onPinClickRef.current = onPinClick;
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
   const onCameraChangeRef = useRef(onCameraChange);
   onCameraChangeRef.current = onCameraChange;
   // Only read at mount, to seed the map's initial view/whether to skip the
@@ -123,6 +127,7 @@ export function NearbyMap({ issues, selectedId, focusId, onPinClick, maximized, 
     mapRef.current = map;
     map.on('error', e => console.error('NearbyMap: map error:', e.error?.message ?? e));
     map.on('load', () => setReady(true));
+    map.on('click', () => onMapClickRef.current?.());
     map.on('zoomend', () => setView(v => v + 1));
     // Fires once a pan/zoom/tilt/rotate gesture settles (not per-frame), so
     // this is already naturally throttled — safe to report straight through.

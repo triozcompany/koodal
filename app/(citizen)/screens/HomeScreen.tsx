@@ -7,6 +7,7 @@ import { step, ago } from '@/lib/domain/rules';
 import type { FilterState } from '@/lib/domain/filters';
 import { PIN_PREVIEW_DARK } from '@/lib/domain/map-pin-theme';
 import { useApp } from '@/lib/app-context';
+import { SHEET_EXPANDED_TOP, sheetOrigin, listDragBounds, settleListDrag, type SheetOrigin } from '@/lib/domain/sheet';
 import { searchIssues } from './SearchScreen';
 import { NearbyMap } from '../components/NearbyMap';
 import styles from './HomeScreen.module.css';
@@ -121,13 +122,101 @@ export function HomeScreen({
     if (top > 110 && (e.currentTarget as HTMLDivElement).scrollTop > 6) setSheetTop(96);
   }, [sheetTop]);
 
+  // Mouse/trackpad path. One step per flick: a step locks until the wheel has been idle, so
+  // momentum events can't carry the sheet from expanded straight through to hidden.
+  const lastWheelAt = useRef(0);
+  const wheelLocked = useRef(false);
   const sheetWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.timeStamp - lastWheelAt.current > 250) wheelLocked.current = false;
+    lastWheelAt.current = e.timeStamp;
+    if (wheelLocked.current || (e.currentTarget as HTMLDivElement).scrollTop > 0 || e.deltaY >= -4) return;
     const h = winH.current;
-    const top = sheetTop ?? Math.round(h * 0.3);
-    if (top <= 110 && (e.currentTarget as HTMLDivElement).scrollTop <= 0 && e.deltaY < -4) {
-      setSheetTop(Math.round(h * 0.3));
+    const mid = Math.round(h * 0.3);
+    const top = sheetTop ?? mid;
+    if (top <= 110) {
+      setSheetTop(mid);
+      wheelLocked.current = true;
+    } else if (Math.abs(top - mid) <= 4) {
+      setSheetHidden(true);
+      setSheetTop(null);
+      wheelLocked.current = true;
     }
   }, [sheetTop]);
+
+  // Touch path. Once the list is at the top, swiping down pulls the sheet down with the finger:
+  // expanded -> initial height -> hidden (one step per swipe, see lib/domain/sheet.ts). `wheel`
+  // never fires for touch, which is why this needs its own listeners. They are native because
+  // React's touchmove is passive and can't preventDefault the list's own overscroll.
+  useEffect(() => {
+    const el = listScrollRef.current;
+    if (!el) return;
+    const SLOP = 6; // px of downward travel before taking over, so row taps are never hijacked
+    const g = { active: false, taking: false, baseY: 0, zeroY: null as number | null, lastY: 0, lastT: 0, v: 0, originTop: 0, origin: 'mid' as SheetOrigin, top: 0 };
+    const dims = () => { const h = winH.current || window.innerHeight; return { h, mid: Math.round(h * 0.3), peek: h - 230 }; };
+
+    const onStart = (e: TouchEvent) => {
+      g.active = e.touches.length === 1 && !sheetHiddenRef.current;
+      g.taking = false;
+      g.v = 0;
+      g.lastY = e.touches[0].clientY;
+      g.lastT = e.timeStamp;
+      g.zeroY = el.scrollTop <= 0 ? g.lastY : null;
+    };
+
+    const finish = (velocity: number) => {
+      g.active = false;
+      if (!g.taking) return;
+      g.taking = false;
+      setSheetDragging(false);
+      const { mid, peek } = dims();
+      const r = settleListDrag({ origin: g.origin, top: g.top, velocity, mid, peek });
+      if (r === 'hide') { setSheetHidden(true); setSheetTop(null); return; }
+      setSheetTop(r === 'expanded' ? SHEET_EXPANDED_TOP : r === 'mid' ? mid : peek);
+    };
+
+    const onMove = (e: TouchEvent) => {
+      if (!g.active) return;
+      if (e.touches.length !== 1) { finish(0); return; }
+      const y = e.touches[0].clientY;
+      const dt = e.timeStamp - g.lastT;
+      if (dt > 0) g.v = 0.7 * g.v + 0.3 * ((y - g.lastY) / dt);
+      g.lastY = y;
+      g.lastT = e.timeStamp;
+
+      if (!g.taking) {
+        if (el.scrollTop > 0) { g.zeroY = null; return; } // the list is still scrolling: leave it alone
+        if (g.zeroY === null || y < g.zeroY) { g.zeroY = y; return; } // just reached the top, or moving up
+        if (y - g.zeroY <= SLOP) return;
+        const { mid, peek } = dims();
+        g.originTop = sheetTopRef.current ?? mid;
+        g.origin = sheetOrigin(g.originTop, mid, peek);
+        g.baseY = y;
+        g.taking = true;
+        setSheetDragging(true);
+      }
+
+      if (e.cancelable) e.preventDefault();
+      const { h, mid, peek } = dims();
+      const b = listDragBounds(g.origin, mid, peek, h);
+      g.top = Math.min(b.max, Math.max(b.min, g.originTop + (y - g.baseY)));
+      setSheetTop(g.top);
+    };
+
+    const onEnd = (e: TouchEvent) => finish(e.type === 'touchend' && e.timeStamp - g.lastT < 80 ? g.v : 0);
+
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd, { passive: true });
+    el.addEventListener('touchcancel', onEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+    // Refs and state setters only: bind once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectPin = useCallback((id: string) => {
     setSheetHidden(true);
@@ -203,6 +292,7 @@ export function HomeScreen({
         selectedId={sheetHidden ? mSelId : null}
         focusId={sheetHidden ? mSelId : null}
         onPinClick={selectPin}
+        onMapClick={() => setMSelId(null)}
         maximized={sheetHidden}
         onToggleMaximize={toggleMapFull}
         mob
@@ -253,75 +343,56 @@ export function HomeScreen({
         const supBg = selOn ? 'var(--cp-pulse)' : PIN_PREVIEW_DARK.supportBtnBg;
         const photoUrl = mSelIssue.evidence?.find(e => e.url)?.url;
         return (
-          <div style={{ position: 'absolute', left: 12, right: 12, bottom: navHidden ? 24 : 96, zIndex: 7, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-            <button
-              data-glare="1"
-              onClick={() => { setSheetHidden(false); setSheetTop(null); setMSelId(null); }}
-              className={styles.raised}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, height: 46, padding: '0 18px', borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 10px 24px -10px rgb(0 0 0 / .45)', animation: 'cp-pop2 .25s both' }}
-            >
-              <i className="ph-bold ph-list-bullets" />
-              Show list · {displayIssues.length}
-            </button>
-            <div data-cp-theme="dark" style={{ width: '100%', borderRadius: 20, background: PIN_PREVIEW_DARK.cardBg, color: PIN_PREVIEW_DARK.cardText, border: PIN_PREVIEW_DARK.cardBorder, boxShadow: '0 18px 40px -16px rgb(0 0 0 / .4),0 0 0 1px rgb(0 0 0 / .05)', overflow: 'hidden', animation: 'cp-sheet .35s cubic-bezier(.2,.9,.3,1.15) both' }}>
-            {mSelIdx >= 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 8px 0' }}>
-                <button
-                  onClick={goMSelPrev}
-                  disabled={!mSelHasPrev}
-                  title="Previous issue"
-                  style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'transparent', color: PIN_PREVIEW_DARK.metaText, cursor: mSelHasPrev ? 'pointer' : 'default', opacity: mSelHasPrev ? 1 : 0.3, display: 'grid', placeItems: 'center', fontSize: 15 }}
-                >
-                  <i className="ph-bold ph-caret-left" />
-                </button>
-                <span style={{ font: '600 11.5px/1 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText }}>{mSelIdx + 1} of {displayIssues.length}</span>
-                <button
-                  onClick={goMSelNext}
-                  disabled={!mSelHasNext}
-                  title="Next issue"
-                  style={{ width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'transparent', color: PIN_PREVIEW_DARK.metaText, cursor: mSelHasNext ? 'pointer' : 'default', opacity: mSelHasNext ? 1 : 0.3, display: 'grid', placeItems: 'center', fontSize: 15 }}
-                >
-                  <i className="ph-bold ph-caret-right" />
-                </button>
-              </div>
-            )}
-            <div style={{ position: 'relative', height: 140, background: photoUrl ? undefined : `repeating-linear-gradient(135deg,${PIN_PREVIEW_DARK.photoGradientA} 0 10px,${PIN_PREVIEW_DARK.photoGradientB} 10px 20px)`, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
-              {photoUrl ? (
-                <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <i className={`ph-bold ${it.icon}`} style={{ fontSize: 40, color: PIN_PREVIEW_DARK.metaText }} />
-              )}
+          <div style={{ position: 'absolute', left: 12, right: 12, bottom: navHidden ? 24 : 96, zIndex: 7, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              {mSelIdx >= 0 ? (
+                <div data-cp-theme="dark" style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 4px', borderRadius: 999, background: PIN_PREVIEW_DARK.cardBg, border: PIN_PREVIEW_DARK.cardBorder, color: PIN_PREVIEW_DARK.metaText, boxShadow: '0 10px 24px -12px rgb(0 0 0 / .45)' }}>
+                  <button onClick={goMSelPrev} disabled={!mSelHasPrev} title="Previous issue" style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', color: 'inherit', cursor: mSelHasPrev ? 'pointer' : 'default', opacity: mSelHasPrev ? 1 : 0.3, display: 'grid', placeItems: 'center', fontSize: 14 }}><i className="ph-bold ph-caret-left" /></button>
+                  <span style={{ font: '600 11.5px/1 Outfit,sans-serif', padding: '0 2px', whiteSpace: 'nowrap' }}>{mSelIdx + 1} of {displayIssues.length}</span>
+                  <button onClick={goMSelNext} disabled={!mSelHasNext} title="Next issue" style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', color: 'inherit', cursor: mSelHasNext ? 'pointer' : 'default', opacity: mSelHasNext ? 1 : 0.3, display: 'grid', placeItems: 'center', fontSize: 14 }}><i className="ph-bold ph-caret-right" /></button>
+                </div>
+              ) : <span />}
               <button
-                onClick={e => { e.stopPropagation(); setMSelId(null); }}
-                style={{ position: 'absolute', right: 10, top: 10, width: 34, height: 34, borderRadius: '50%', border: 'none', background: PIN_PREVIEW_DARK.closeBtnBg, color: PIN_PREVIEW_DARK.closeBtnFg, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 15 }}
+                data-glare="1"
+                onClick={() => { setSheetHidden(false); setSheetTop(null); setMSelId(null); }}
+                className={styles.raised}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, height: 40, padding: '0 16px', borderRadius: 999, border: 'none', background: 'var(--cp-ink)', color: 'var(--cp-bg)', font: '600 12.5px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 10px 24px -10px rgb(0 0 0 / .45)', animation: 'cp-pop2 .25s both' }}
               >
-                <i className="ph-bold ph-x" />
+                <i className="ph-bold ph-list-bullets" />
+                Show list · {displayIssues.length}
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px 14px' }}>
-              <span style={{ font: '500 11.5px/1.2 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.meta}</span>
-              <span style={{ font: '600 15px/1.25 Outfit,sans-serif' }}>{it.title}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: it.pc, color: it.pfg, font: '600 11px/1 Outfit,sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>{it.pl}</span>
-                <span style={{ flex: 1, font: '600 12px/1 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap' }}>{it.n} citizens</span>
-                <button
-                  onClick={e => { e.stopPropagation(); onSupport(mSelIssue.id); }}
-                  className={styles.supportBtn}
-                  style={{ width: 40, height: 40, borderRadius: '50%', border: PIN_PREVIEW_DARK.supportBtnBorder, background: supBg, color: PIN_PREVIEW_DARK.supportBtnFg, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 17, flexShrink: 0 }}
-                >
-                  <i className={it.si} />
-                </button>
-                <button
-                  data-glare="1"
-                  onClick={() => onOpen(mSelIssue.id)}
-                  className={styles.raised}
-                  style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 'none', background: PIN_PREVIEW_DARK.openBtnBg, color: PIN_PREVIEW_DARK.openBtnFg, font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 7 }}
-                >
-                  Open<i className="ph-bold ph-arrow-right" />
-                </button>
+            {/* Whole card opens the issue; the support button stops the tap. Tapping the map closes it. */}
+            <div
+              data-cp-theme="dark"
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpen(mSelIssue.id)}
+              onKeyDown={e => { if (e.key === 'Enter') onOpen(mSelIssue.id); }}
+              style={{ display: 'flex', gap: 14, padding: 12, borderRadius: 20, background: PIN_PREVIEW_DARK.cardBg, color: PIN_PREVIEW_DARK.cardText, border: PIN_PREVIEW_DARK.cardBorder, boxShadow: '0 18px 40px -16px rgb(0 0 0 / .4),0 0 0 1px rgb(0 0 0 / .05)', cursor: 'pointer', animation: 'cp-sheet .35s cubic-bezier(.2,.9,.3,1.15) both' }}
+            >
+              <div style={{ width: 104, height: 104, flex: 'none', borderRadius: 14, overflow: 'hidden', background: photoUrl ? undefined : `repeating-linear-gradient(135deg,${PIN_PREVIEW_DARK.photoGradientA} 0 10px,${PIN_PREVIEW_DARK.photoGradientB} 10px 20px)`, display: 'grid', placeItems: 'center' }}>
+                {photoUrl
+                  ? <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <i className={`ph-bold ${it.icon}`} style={{ fontSize: 28, color: PIN_PREVIEW_DARK.metaText }} />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ font: '500 11.5px/1.2 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.meta}</span>
+                <span style={{ font: '600 15px/1.25 Outfit,sans-serif', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{it.title}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: it.pc, color: it.pfg, font: '600 11px/1 Outfit,sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>{it.pl}</span>
+                  <span style={{ flex: 1, font: '600 11.5px/1 Outfit,sans-serif', color: PIN_PREVIEW_DARK.metaText, whiteSpace: 'nowrap' }}>{it.n} citizens</span>
+                  <button
+                    onClick={e => { e.stopPropagation(); onSupport(mSelIssue.id); }}
+                    className={styles.supportBtn}
+                    aria-label="Support"
+                    style={{ width: 40, height: 40, borderRadius: '50%', border: PIN_PREVIEW_DARK.supportBtnBorder, background: supBg, color: PIN_PREVIEW_DARK.supportBtnFg, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 16, flexShrink: 0 }}
+                  >
+                    <i className={it.si} />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
           </div>
         );
       })()}
