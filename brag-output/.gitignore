@@ -1,0 +1,4 @@
+# Regenerable HyperFrames outputs and caches; the final render is public/videos/koodal-product.mp4
+composition/renders/
+composition/.thumbnails/
+composition/.waveform-cache/
