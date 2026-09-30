@@ -35,6 +35,7 @@ Sign-in is **employee ID + password, then a 6-digit code**.
 | `GCC-2041` | Priya Natarajan (Junior Engineer) | Staff | **Roads** only | `koodal-demo` |
 | `GCC-2042` | Farida Begum (Assistant Engineer) | Staff | **Water & Drainage** and **Sanitation** | `koodal-demo` |
 
+- **Shortcut:** the sign-in page has a **Test accounts** list; tap a row to fill the ID and password, and on the code screen tap **Use test code 123456**.
 - **Code screen:** enter **any six digits** (for example `123456`). Text-message codes are not switched on, and the server does not check the code. The password is the only real check.
 - **Lockout:** five wrong passwords lock that employee ID for **5 minutes** (even the right password is refused meanwhile). Unknown IDs and wrong passwords show the same message on purpose.
 - **Unlock immediately:** in Firebase Console, open `staff/<ID>` and set `lockUntil` to `null` and `failedAttempts` to `0`.
@@ -58,6 +59,8 @@ Citizen sign-in is **phone number → code → Aadhaar check → profile**. All 
 | Profile (first time only) | Any name, and pick an area, for example *Velachery, Chennai* |
 
 Returning users who are already verified go straight in after the code.
+
+**Shortcut:** the phone screen lists these numbers under **Demo numbers**; tap one to fill it (new citizens also get their name pre-filled on the profile step).
 
 **You need several citizens to test the full lifecycle**, because a report only becomes a case once **5 people support it** (the reporter counts as 1, so four more). Any 10-digit number works and each number is its own citizen. Suggested test numbers:
 

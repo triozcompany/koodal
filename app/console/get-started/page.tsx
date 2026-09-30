@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { GetStarted } from '../_components/GetStarted';
+import '../../(marketing)/marketing.css';
+import { GetStarted } from '../../(marketing)/_components/GetStarted';
 
 export const metadata: Metadata = {
   title: 'Get started · Koodal',

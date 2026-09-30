@@ -44,7 +44,7 @@ export function Navbar() {
         <Link href="/nearby" className="kd-btn nav light">
           <i className="ph-bold ph-user" /><span className="kd-desk-only">Koodal App</span><span className="kd-mob-only">App</span>
         </Link>
-        <Link href="/get-started" className="kd-btn nav">
+        <Link href="/console/get-started" className="kd-btn nav">
           <i className="ph-bold ph-identification-badge" /><span className="kd-desk-only">Koodal Console</span><span className="kd-mob-only">Console</span>
         </Link>
       </div>

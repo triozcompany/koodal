@@ -10,7 +10,7 @@ export function CtaBand() {
         <h2 className="kd-h2" style={s('position:relative;max-width:760px;color:inherit')}>Bring your community <span style={{ color: '#fb923c' }}>together</span> this week.</h2>
         <p style={s('position:relative;margin:0;max-width:520px;font:400 17px/1.6 Outfit,sans-serif;color:#bdbdbd')}>Set up in an afternoon. Invite people with a link. Cancel any time.</p>
         <div style={s('position:relative;display:flex;gap:10px;flex-wrap:wrap;justify-content:center')}>
-          <Link href="/get-started" className="kd-btn white">Start free trial<i className="ph-bold ph-arrow-right" /></Link>
+          <Link href="/console/get-started" className="kd-btn white">Start free trial<i className="ph-bold ph-arrow-right" /></Link>
           <Link href="/nearby" className="kd-btn ghost-dark">Join an organization</Link>
         </div>
       </div>

@@ -13,7 +13,7 @@ const DESTINATIONS = [
     cta: 'Open Koodal App',
   },
   {
-    href: '/get-started',
+    href: '/console/get-started',
     icon: 'ph-bold ph-identification-badge',
     bg: '#eaf7f5',
     fg: '#0f8b83',

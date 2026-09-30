@@ -195,7 +195,7 @@ export function GetStarted() {
               )}
               <Err />
               <button className="kd-primary" onClick={accNext}>{otpSent ? 'Verify & continue' : 'Send code'}<i className="ph-bold ph-arrow-right" /></button>
-              <span style={s('align-self:center;font:500 13px/1.3 Outfit,sans-serif;color:var(--cp-ink-3)')}>Already on Koodal? <Link href="/nearby" style={{ fontWeight: 600, color: 'var(--cp-pulse)' }}>Sign in</Link></span>
+              <span style={s('align-self:center;font:500 13px/1.3 Outfit,sans-serif;color:var(--cp-ink-3)')}>Already on Koodal? <Link href="/console/sign-in" style={{ fontWeight: 600, color: 'var(--cp-pulse)' }}>Sign in</Link></span>
             </div>
           )}
 
@@ -308,7 +308,7 @@ export function GetStarted() {
                   </div>
                 ))}
               </div>
-              <Link href="/gov" className="kd-primary">Open Koodal Console<i className="ph-bold ph-arrow-right" /></Link>
+              <Link href="/console/sign-in" className="kd-primary">Open Koodal Console<i className="ph-bold ph-arrow-right" /></Link>
               <button onClick={() => { try { navigator.clipboard.writeText('https://koodal.app/' + slug); } catch { /* clipboard blocked */ } showToast('Join link copied'); }} style={s('height:48px;border-radius:999px;background:linear-gradient(180deg,var(--cp-surface),var(--cp-surface-2));border:1px solid var(--cp-line);box-shadow:0 2px 0 var(--cp-edge);color:var(--cp-ink);font:600 14px/1 Outfit,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px')}><i className="ph-bold ph-link-simple" />Copy join link · koodal.app/{slug}</button>
             </div>
           )}

@@ -45,7 +45,7 @@ export function Pricing() {
                   </span>
                 ))}
               </div>
-              <button className="kd-planbtn" style={{ background: hi ? '#e8590c' : '#0f0f0f' }} onClick={() => router.push(`/get-started?plan=${p.k}`)}>
+              <button className="kd-planbtn" style={{ background: hi ? '#e8590c' : '#0f0f0f' }} onClick={() => router.push(`/console/get-started?plan=${p.k}`)}>
                 {p.m == null ? 'Talk to us' : 'Start free trial'}<i className="ph-bold ph-arrow-right" />
               </button>
             </div>

@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { s } from './s';
 
 const GROUPS: [string, [string, string][]][] = [
-  ['Product', [['Koodal app', '/nearby'], ['Koodal Console', '/gov'], ['Join an organization', '/nearby'], ['Pricing', '/#pricing']]],
-  ['Platform', [['How it works', '/#product'], ['Get started', '/get-started'], ['Platform admin', '/government']]],
+  ['Product', [['Koodal app', '/nearby'], ['Koodal Console', '/console/sign-in'], ['Join an organization', '/nearby'], ['Pricing', '/#pricing']]],
+  ['Platform', [['How it works', '/#product'], ['Get started', '/console/get-started']]],
   ['Company', [['Pitch deck', '/pitch'], ['Contact us', 'mailto:hello@koodal.app'], ['Privacy & terms', '#']]],
 ];
 

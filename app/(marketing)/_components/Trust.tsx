@@ -18,7 +18,7 @@ export function Trust() {
             </span>
           ))}
         </div>
-        <Link href="/get-started" className="kd-btn" style={s('align-self:flex-start;margin-top:8px')}>Start free trial<i className="ph-bold ph-arrow-right" /></Link>
+        <Link href="/console/get-started" className="kd-btn" style={s('align-self:flex-start;margin-top:8px')}>Start free trial<i className="ph-bold ph-arrow-right" /></Link>
       </div>
       <div style={s('position:relative;height:440px')}>
         {ORBS.map(([x, y, sz, bg, fg, icon, t, dur, d, fs]) => (
