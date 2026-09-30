@@ -9,6 +9,7 @@ import { ReportMediaViewer } from '../components/ReportMediaViewer';
 import { GoalGradientBar } from '../components/GoalGradientBar';
 import { LocationPicker } from '../components/LocationPicker';
 import { Tooltip } from '../components/Tooltip';
+import { LiveCamera } from '../components/LiveCamera';
 import { CATS, ICON_CHOICES } from '@/lib/domain/constants';
 import { calcReportSegments, getReportHint } from '@/lib/domain/report-draft';
 import type { Shot } from '@/lib/domain/report-draft';
@@ -81,6 +82,8 @@ export function ReportScreen({
   const [flash, setFlash] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = useState(false); // live camera over an existing photo, to add another
   const [descMode, setDescMode] = useState<'text' | 'voice'>('text');
   const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'done'>('idle');
   const [tagDraft, setTagDraft] = useState('');
@@ -167,10 +170,7 @@ export function ReportScreen({
   // No network call here — the photo is compressed and kept locally (in
   // localStorage) until the report is actually submitted. See AppShell's
   // doPostNew/doJoin for where the real Cloudinary upload happens.
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  const addFile = async (file: File) => {
     setUploading(true);
     try {
       const dataUrl = await fileToDataUrl(file);
@@ -182,6 +182,12 @@ export function ReportScreen({
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) addFile(file);
   };
 
   const handleRemoveShot = (id: string) => {
@@ -273,6 +279,7 @@ export function ReportScreen({
   return (
     <div style={{ position: 'absolute', inset: 0, background: '#0c0d10', color: '#fff', animation: 'cp-in .3s ease-out both', display: 'flex', flexDirection: 'column' }}>
       <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handleFileChange} />
+      <input ref={galleryInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
 
       {/* Sticky top bar — close/GPS row, goal-gradient progress, hint+percent */}
       <div style={{
@@ -292,15 +299,7 @@ export function ReportScreen({
             <i className="ph-fill ph-navigation-arrow" style={{ color: 'var(--cp-marigold)' }}></i>
             GPS ±8 m
           </span>
-          {mob ? (
-            <Tooltip label="Toggle flash">
-              <button aria-label="Toggle flash" style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18 }}>
-                <i className="ph-bold ph-lightning"></i>
-              </button>
-            </Tooltip>
-          ) : (
-            <span style={{ width: 42 }} />
-          )}
+          <span style={{ width: 42 }} />
         </div>
 
         <div style={{ padding: '12px 16px 10px' }}>
@@ -325,39 +324,7 @@ export function ReportScreen({
         {/* Photo area */}
         <div style={{ position: 'relative', height: photoAreaH, minHeight: 200, overflow: 'hidden', borderRadius: '0 0 26px 26px', background: 'repeating-linear-gradient(135deg,#1b1d22 0 10px,#16181c 10px 20px)' }}>
           {camMode && (
-            <>
-              <div style={{ position: 'absolute', left: '50%', top: '50%', width: 220, height: 220, marginLeft: -110, marginTop: -110 }}>
-                <div style={{ position: 'absolute', left: 0, top: 0, width: 34, height: 34, borderLeft: '3px solid #fff', borderTop: '3px solid #fff', borderRadius: '12px 0 0 0' }} />
-                <div style={{ position: 'absolute', right: 0, top: 0, width: 34, height: 34, borderRight: '3px solid #fff', borderTop: '3px solid #fff', borderRadius: '0 12px 0 0' }} />
-                <div style={{ position: 'absolute', left: 0, bottom: 0, width: 34, height: 34, borderLeft: '3px solid #fff', borderBottom: '3px solid #fff', borderRadius: '0 0 0 12px' }} />
-                <div style={{ position: 'absolute', right: 0, bottom: 0, width: 34, height: 34, borderRight: '3px solid #fff', borderBottom: '3px solid #fff', borderRadius: '0 0 12px 0' }} />
-              </div>
-              <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 7, height: 34, padding: '0 13px', borderRadius: 17, background: 'rgba(12,13,16,.72)', font: '600 12px/1 Outfit,sans-serif', whiteSpace: 'nowrap' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--cp-marigold)' }} />
-                Point at the issue
-              </div>
-              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 56 }}>
-                  <Tooltip label="Choose from gallery">
-                    <button aria-label="Choose from gallery" onClick={doCapture} style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', fontSize: 20, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
-                      <i className="ph-bold ph-images"></i>
-                    </button>
-                  </Tooltip>
-                  <Tooltip label="Capture photo">
-                    <button aria-label="Capture photo" onClick={doCapture} disabled={uploading} style={{ width: 80, height: 80, borderRadius: '50%', border: '5px solid #fff', background: 'transparent', padding: 5, cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
-                      {uploading
-                        ? <span style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%', border: '3px solid rgba(255,255,255,.35)', borderTopColor: '#fff', animation: 'cp-spin .7s linear infinite' }} />
-                        : <span style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%', background: 'oklch(0.63 0.19 32)' }} />}
-                    </button>
-                  </Tooltip>
-                  <Tooltip label="Switch camera">
-                    <button aria-label="Switch camera" style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,.14)', border: 'none', color: '#fff', fontSize: 20, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
-                      <i className="ph-bold ph-camera-rotate"></i>
-                    </button>
-                  </Tooltip>
-                </div>
-              </div>
-            </>
+            <LiveCamera onFile={addFile} onGallery={() => galleryInputRef.current?.click()} onNativeCapture={doCapture} busy={uploading} />
           )}
 
           {uploadMode && (
@@ -380,7 +347,7 @@ export function ReportScreen({
               <ReportMediaViewer
                 shots={shots}
                 aiHint={`${CATS[cat].l} spotted`}
-                onAdd={doCapture}
+                onAdd={mob ? () => setCameraOpen(true) : doCapture}
                 onRemove={handleRemoveShot}
                 onRetakeAll={onRetakeAll}
                 street={location?.address || 'Locating…'}
@@ -388,7 +355,13 @@ export function ReportScreen({
             </div>
           )}
 
-          {flash && <div style={{ position: 'absolute', inset: 0, background: '#fff', animation: 'cp-flash .3s ease-out both' }} />}
+          {captured && mob && cameraOpen && (
+            <div style={{ position: 'absolute', inset: 0, zIndex: 5, background: '#0c0d10' }}>
+              <LiveCamera onFile={addFile} onGallery={() => galleryInputRef.current?.click()} onNativeCapture={doCapture} busy={uploading} onClose={() => setCameraOpen(false)} />
+            </div>
+          )}
+
+          {flash && <div style={{ position: 'absolute', inset: 0, zIndex: 6, background: '#fff', animation: 'cp-flash .3s ease-out both' }} />}
         </div>
 
         {/* Form (after at least one photo) */}

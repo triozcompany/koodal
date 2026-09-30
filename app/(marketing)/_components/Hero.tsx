@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { s } from './s';
 import { TRIAL_DAYS } from './data';
 import { scrollToSection } from './Navbar';
+import { useInstall } from '@/components/pwa/PwaProvider';
 
 export function Hero() {
+  const { showInstall, promptInstall } = useInstall();
   return (
     <section style={s('padding:0 16px;margin-top:-78px')}>
       <div className="kd-hero-in" style={s('position:relative;max-width:1400px;margin:0 auto;border-radius:0 0 40px 40px;overflow:hidden;background:radial-gradient(120% 70% at 50% 110%,#f08a4b 0%,#f6b489 38%,#fbe3d2 62%,#fbf9f5 84%);box-sizing:border-box')}>
@@ -19,6 +21,9 @@ export function Hero() {
             <button className="kd-btn light" onClick={() => scrollToSection('product')}><i className="ph-fill ph-play-circle" style={s('color:#e8590c;font-size:18px')} />See how it works</button>
           </div>
           <span style={s('font:500 13px/1 Outfit,sans-serif;color:#6b5a4c')}>{TRIAL_DAYS}-day free trial · No card needed · 12 Indian languages</span>
+          {showInstall && (
+            <button className="kd-navlink" onClick={promptInstall} style={s('height:36px;border:1px solid #eadfd4;background:#fff')}><i className="ph-bold ph-download-simple" style={{ marginRight: 6, color: '#e8590c' }} />Install the app</button>
+          )}
         </div>
 
         <div className="kd-hero-shots">

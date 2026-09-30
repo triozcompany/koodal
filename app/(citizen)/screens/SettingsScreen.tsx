@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import type { Me } from '@/lib/domain/types';
+import { useInstall } from '@/components/pwa/PwaProvider';
 
 interface ToggleDef { icon: string; label: string; sub: string; value: boolean; onChange: (v: boolean) => void; }
 
@@ -213,6 +214,7 @@ export function SettingsScreen({ me, meInitials, mob, setMe, clearVotes, onBack,
   const [lang, setLang] = useState('en');
   const [langPickerOpen, setLangPickerOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const { showInstall, promptInstall } = useInstall();
 
   function toast(msg: string) {
     setToastMsg(msg);
@@ -279,6 +281,13 @@ export function SettingsScreen({ me, meInitials, mob, setMe, clearVotes, onBack,
           trailing="ph-caret-right"
           onClick={() => setLangPickerOpen(true)}
         />
+
+        {showInstall && (
+          <>
+            <SectionLabel>App</SectionLabel>
+            <InfoRow icon="ph-download-simple" label="Install Koodal" sub="Add it to your home screen for a full-screen app" trailing="ph-caret-right" onClick={promptInstall} />
+          </>
+        )}
 
         <SectionLabel>Account</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column' }}>

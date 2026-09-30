@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<title>Offline · Koodal</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#fbf9f5;color:#0f0f0f;font-family:Outfit,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  main{max-width:380px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .mark{width:84px;height:84px;border-radius:24px;background:#fff;display:grid;place-items:center;box-shadow:0 24px 40px -18px rgba(232,89,12,.5)}
+  .mark img{width:56px;height:56px;object-fit:contain}
+  h1{margin:8px 0 0;font-size:32px;line-height:1.1;letter-spacing:-.03em;font-weight:600}
+  p{margin:0;font-size:16px;line-height:1.55;color:#5b5b5b}
+  button{margin-top:10px;height:50px;padding:0 26px;border:0;border-radius:14px;background:#0f0f0f;color:#fff;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 10px 24px -10px rgba(0,0,0,.5)}
+  button:active{transform:scale(.97)}
+</style>
+</head>
+<body>
+<main>
+  <div class="mark"><img src="/icons/android/launchericon-192x192.png" alt="Koodal"></div>
+  <h1>You're offline</h1>
+  <p>Koodal needs a connection to show live issues and cases. Check your network and try again.</p>
+  <button onclick="location.reload()">Try again</button>
+</main>
+</body>
+</html>
