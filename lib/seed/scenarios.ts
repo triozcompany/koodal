@@ -31,7 +31,7 @@ const CITY_OF = (k: string) => (['goripalayam', 'mduanna', 'kknagar', 'periyar',
 
 const PHOTOS: Record<Category, string[]> = {
   road: ['road1', 'road2', 'road4', 'road5'], drain: ['drain1', 'drain2', 'drain3', 'drain4'], garbage: ['garb1', 'garb2', 'garb5'],
-  light: ['light3', 'light1', 'light2'], water: ['sew1', 'sew3', 'sew4'], tree: ['tree1', 'tree2'], footpath: ['foot1', 'foot2', 'foot4', 'foot3'],
+  light: ['light3', 'light1', 'light2'], water: ['sew1', 'sew3', 'sew4', 'sew5'], tree: ['tree3', 'tree1', 'tree2'], footpath: ['foot1', 'foot2', 'foot4', 'foot3', 'foot5'],
 };
 const AFTER: Record<Category, string> = { road: 'fix2', drain: 'fix5', garbage: 'fix4', light: 'fix1', water: 'fix5', tree: 'fix4', footpath: 'fix4' };
 const img = (k: string) => `/seed/${k}.webp`;
@@ -98,8 +98,11 @@ function build(s: Spec, now: number): SeedIssue {
   const dept = deptOf(s.cat, city);
   const corp = CITY[city].corp;
   const team = TEAM[dept] ?? 'Roads Team';
-  // The detail mosaic has five tiles, so lead with the scenario's own photos and top up from the category pool.
-  const photos = [...new Set([...(s.photos ?? []), ...PHOTOS[s.cat]])].slice(0, s.id.startsWith('CP-H') ? 1 : 4);
+  // The issue page's photo grid has five tiles and draws labelled placeholders for missing ones, so
+  // every issue gets five photos: its main shot plus four framings of the same scene (public/seed/*-vN),
+  // as if taken by different neighbours. A scenario's second listed photo takes the third tile.
+  const main = s.photos?.[0] ?? PHOTOS[s.cat][0];
+  const photos = [main, `${main}-v1`, s.photos?.[1] ?? `${main}-v2`, `${main}-v3`, `${main}-v4`];
 
   const events: IssueEvent[] = [];
   const E = (ts: number | undefined, title: string, sub: string, icon: string, kind: string, photo = '', gov = false) => {
@@ -128,10 +131,13 @@ function build(s: Spec, now: number): SeedIssue {
   if (s.reject) E(rejectTs, `Not accepted by ${corp}`, `Reason: ${s.reject.reason}`, 'ph-x-circle', 'gov', rejectProof![0].url, true);
   events.sort((a, b) => a.ts - b.ts);
 
+  // Photos come only from people who support the issue, so "added evidence" never exceeds supporters.
+  const people = [{ name: byName, uid }, ...voters.map((v) => ({ name: TEST_CITIZENS[v].name, uid: citizenUid(TEST_CITIZENS[v].phone) })),
+    ...Array.from({ length: s.extra ?? 0 }, (_, j) => ({ name: NEIGHBOURS[j % NEIGHBOURS.length], uid: `seed-n${j}` }))];
   const evidence = photos.map((p, k) => ({
     id: `${s.id}-e${k}`,
-    by: k === 0 ? ini(byName) : ini(voters[k - 1] != null ? TEST_CITIZENS[voters[k - 1]].name : NEIGHBOURS[k % NEIGHBOURS.length]),
-    uid: k === 0 ? uid : voters[k - 1] != null ? citizenUid(TEST_CITIZENS[voters[k - 1]].phone) : `seed-n${k}`,
+    by: ini(people[k % people.length].name),
+    uid: people[k % people.length].uid,
     ts: created + k * H, kind: (k === 0 ? 'initial' : 'followup') as 'initial' | 'followup', url: img(p),
   }));
   const kmHome = city === 'Chennai' ? Math.hypot((lat - HOME.lat) * 111, (lng - HOME.lng) * 108) : 0;

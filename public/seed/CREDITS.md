@@ -33,3 +33,6 @@ Demo photos from Wikimedia Commons, resized to 800px WebP. Each is used under th
 | fix3.webp | [Volunteers fixing potholes.jpg](https://commons.wikimedia.org/wiki/File:Volunteers_fixing_potholes.jpg) | Bprathap79 | CC BY-SA 4.0 |
 | fix4.webp | [Jayanagar footpath (2026) 01.jpg](https://commons.wikimedia.org/wiki/File:Jayanagar_footpath_(2026)_01.jpg) | Gpkp | CC BY-SA 4.0 |
 | fix5.webp | [Sewage construction activity by BBMP 2021.jpg](https://commons.wikimedia.org/wiki/File:Sewage_construction_activity_by_BBMP_2021.jpg) | Gangaasoonu | CC BY-SA 4.0 |
+| tree3.webp | [Kamalpur, Odisha 756117, India - panoramio.jpg](https://commons.wikimedia.org/wiki/File:Kamalpur,_Odisha_756117,_India_-_panoramio.jpg) | Deepak das | CC BY 3.0 |
+| foot5.webp | [Cracked pavement near National Park (35520277).jpg](https://commons.wikimedia.org/wiki/File:Cracked_pavement_near_National_Park_(35520277).jpg) | Rakesh from Bangalore | CC BY-SA 2.0 |
+| sew5.webp | [Destroyed water and sewer pipes by elephants in Kariba (6910362989).jpg](https://commons.wikimedia.org/wiki/File:Destroyed_water_and_sewer_pipes_by_elephants_in_Kariba_(6910362989).jpg) | SuSanA Secretariat | CC BY 2.0 |
