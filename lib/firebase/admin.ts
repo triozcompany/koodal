@@ -14,6 +14,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const SERVICE_ACCOUNT_PATH = join(__dirname, '..', '..', 'secret', 'trioz-319df-firebase-adminsdk-fbsvc-9ed783fdc2.json');
 
 function loadServiceAccount() {
+  // Preferred for hosts like Vercel: three plain env vars instead of one
+  // JSON blob — no reassembling/escaping a whole file into a single value.
+  // The private key's embedded newlines survive Vercel's env var UI as real
+  // newlines already; `\n` is only unescaped here in case it was pasted as
+  // a literal escaped one-liner instead (harmless no-op otherwise).
+  if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    return {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    };
+  }
   if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   }
