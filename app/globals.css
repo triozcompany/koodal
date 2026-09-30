@@ -1,4 +1,4 @@
-@import '../design_handoff_koodal/tokens.css';
+@import './tokens.css';
 
 /* App-specific addition (not part of the Koodal token source above): a soft pulsing
    glow used by the report-flow progress stepper to mark the current step. */

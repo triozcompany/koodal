@@ -237,7 +237,7 @@ The Firebase **client** (web) config in `lib/firebase/client.ts` is not secret �
 - `lib/domain/` — pure domain logic and types shared across screens (stages, filters, scoring, dedup, etc.), no framework or I/O dependencies.
 - `lib/firebase/` — Firestore client SDK (`client.ts`) and Admin SDK (`admin.ts`) setup.
 - `server/actions/` — Next.js Server Actions that perform the actual Firestore writes.
-- `design_handoff_koodal/` — the design source of truth (interactive prototype + per-screen markup/logic slices) that the citizen UI is ported from.
+- `app/tokens.css` — design tokens (colors, type, spacing) imported by `app/globals.css`.
 - `scripts/seed-koodal.ts` — seeds sample issues/cases into Firestore for local development and demos.
 
 ## Scripts
