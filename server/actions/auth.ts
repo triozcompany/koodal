@@ -16,37 +16,56 @@ function uidForPhone(phone: string): string {
  * signed-in session for that uid.
  */
 export async function signInWithPhone(phone: string) {
-  const uid = uidForPhone(phone);
-  const ref = adminDb.doc(`users/${uid}`);
-  const snap = await ref.get();
-  const isNewUser = !snap.exists;
+  try {
+    const uid = uidForPhone(phone);
+    const ref = adminDb.doc(`users/${uid}`);
+    const snap = await ref.get();
+    const isNewUser = !snap.exists;
 
-  if (isNewUser) {
-    await ref.set({
-      uid, phone, name: '', area: '', anonDefault: false,
-      verified: false, votes: {}, createdAt: Date.now(),
-    });
+    if (isNewUser) {
+      await ref.set({
+        uid, phone, name: '', area: '', anonDefault: false,
+        verified: false, votes: {}, createdAt: Date.now(),
+      });
+    }
+
+    const data = isNewUser ? undefined : snap.data();
+    const token = await adminAuth.createCustomToken(uid);
+
+    return {
+      token,
+      uid,
+      isNewUser,
+      verified: !!data?.verified,
+      name: (data?.name as string) ?? '',
+      area: (data?.area as string) ?? '',
+    };
+  } catch (err) {
+    // An uncaught rejection here crashes the whole Server Action (a hard
+    // 500), which corrupts the client's expected response and surfaces as a
+    // generic, undebuggable React error instead of the message below —
+    // logging the real cause server-side (Vercel's function logs) first.
+    console.error('signInWithPhone failed:', err);
+    throw new Error("Couldn't sign you in right now. Please try again shortly.");
   }
-
-  const data = isNewUser ? undefined : snap.data();
-  const token = await adminAuth.createCustomToken(uid);
-
-  return {
-    token,
-    uid,
-    isNewUser,
-    verified: !!data?.verified,
-    name: (data?.name as string) ?? '',
-    area: (data?.area as string) ?? '',
-  };
 }
 
 /** Mocked e-KYC — no real UIDAI call, just records that this uid passed the
  * (fake) check, matching the original demo's "stores only a verified flag." */
 export async function verifyAadhaar(uid: string) {
-  await adminDb.doc(`users/${uid}`).update({ verified: true, verifiedAt: Date.now() });
+  try {
+    await adminDb.doc(`users/${uid}`).update({ verified: true, verifiedAt: Date.now() });
+  } catch (err) {
+    console.error('verifyAadhaar failed:', err);
+    throw new Error("Couldn't verify right now. Please try again shortly.");
+  }
 }
 
 export async function updateProfile(uid: string, patch: Partial<Pick<Me, 'name' | 'area' | 'anonDefault' | 'votes'>>) {
-  await adminDb.doc(`users/${uid}`).set(patch, { merge: true });
+  try {
+    await adminDb.doc(`users/${uid}`).set(patch, { merge: true });
+  } catch (err) {
+    console.error('updateProfile failed:', err);
+    throw new Error("Couldn't save your profile right now. Please try again shortly.");
+  }
 }

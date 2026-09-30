@@ -26,7 +26,16 @@ async function checkPassword(empId: string, password: string): Promise<{ ok: tru
   const id = normId(empId);
   if (!id || !password) return { ok: false, error: 'Enter your employee ID and password.' };
   const ref = adminDb.doc(`staff/${id}`);
-  const snap = await ref.get();
+  let snap;
+  try {
+    snap = await ref.get();
+  } catch (err) {
+    // An uncaught rejection here crashes the whole Server Action (a hard
+    // 500) instead of returning this same message like every other failure
+    // path below — logging the real cause server-side (Vercel's function logs) first.
+    console.error('checkPassword (Firestore read) failed:', err);
+    return { ok: false, error: 'Could not check your password right now. Try again.' };
+  }
   if (!snap.exists || snap.data()!.active === false) return { ok: false, error: GENERIC };
   const doc = { id, ...snap.data() } as StaffDoc;
   if (doc.lockUntil && doc.lockUntil > Date.now()) {
@@ -62,23 +71,38 @@ export async function signInStaff(empId: string, password: string): Promise<{ to
   const r = await checkPassword(empId, password);
   if (!r.ok) return { error: r.error };
   const staff = profileOf(r.doc);
-  const token = await adminAuth.createCustomToken(`staff_${staff.id}`, { staff: true, org: 'gcc', depts: staff.depts, staffName: staff.name, staffId: staff.id, role: staff.role });
-  return { token, staff };
+  try {
+    const token = await adminAuth.createCustomToken(`staff_${staff.id}`, { staff: true, org: 'gcc', depts: staff.depts, staffName: staff.name, staffId: staff.id, role: staff.role });
+    return { token, staff };
+  } catch (err) {
+    console.error('signInStaff (createCustomToken) failed:', err);
+    return { error: 'Could not sign you in right now. Try again.' };
+  }
 }
 
 async function whoAmI(idToken: string) {
-  const t = await adminAuth.verifyIdToken(idToken);
-  if (!t.staff) throw new Error('Not authorised');
-  return { t, id: (t.staffId as string | undefined) ?? t.uid.replace(/^staff_/, '') };
+  try {
+    const t = await adminAuth.verifyIdToken(idToken);
+    if (!t.staff) throw new Error('Not authorised');
+    return { t, id: (t.staffId as string | undefined) ?? t.uid.replace(/^staff_/, '') };
+  } catch (err) {
+    console.error('whoAmI failed:', err);
+    throw new Error("Couldn't verify your session. Please sign in again.");
+  }
 }
 
 /** Fresh profile, saved settings and org config for a signed-in session (called on every load). */
 export async function getMe(idToken: string): Promise<{ staff: StaffProfile; prefs: Prefs; config: OrgConfig }> {
   const { id } = await whoAmI(idToken);
-  const snap = await adminDb.doc(`staff/${id}`).get();
-  if (!snap.exists || snap.data()!.active === false) throw new Error('This staff account is no longer active');
-  const doc = { id, ...snap.data() } as StaffDoc;
-  return { staff: profileOf(doc), prefs: { ...DEFAULT_PREFS, ...(doc.prefs ?? {}) }, config: await loadOrgConfig() };
+  try {
+    const snap = await adminDb.doc(`staff/${id}`).get();
+    if (!snap.exists || snap.data()!.active === false) throw new Error('This staff account is no longer active');
+    const doc = { id, ...snap.data() } as StaffDoc;
+    return { staff: profileOf(doc), prefs: { ...DEFAULT_PREFS, ...(doc.prefs ?? {}) }, config: await loadOrgConfig() };
+  } catch (err) {
+    console.error('getMe failed:', err);
+    throw new Error("Couldn't load your profile right now. Please try again shortly.");
+  }
 }
 
 export async function saveStaffPrefs(idToken: string, prefs: Prefs) {
@@ -90,7 +114,12 @@ export async function saveStaffPrefs(idToken: string, prefs: Prefs) {
     timeout: (['15m', '30m', '60m'] as const).includes(prefs.timeout) ? prefs.timeout : DEFAULT_PREFS.timeout,
     showDemo: !!prefs.showDemo,
   };
-  await adminDb.doc(`staff/${id}`).set({ prefs: clean }, { merge: true });
+  try {
+    await adminDb.doc(`staff/${id}`).set({ prefs: clean }, { merge: true });
+  } catch (err) {
+    console.error('saveStaffPrefs failed:', err);
+    throw new Error("Couldn't save your settings right now. Please try again shortly.");
+  }
 }
 
 export async function changeStaffPassword(idToken: string, current: string, next: string): Promise<{ ok: boolean; error?: string }> {
@@ -99,6 +128,11 @@ export async function changeStaffPassword(idToken: string, current: string, next
   if (next === current) return { ok: false, error: 'Choose a different password.' };
   const r = await checkPassword(id, current);
   if (!r.ok) return { ok: false, error: r.error === GENERIC ? 'Your current password is incorrect.' : r.error };
-  await adminAuth.updateUser(t.uid, { password: next });
-  return { ok: true };
+  try {
+    await adminAuth.updateUser(t.uid, { password: next });
+    return { ok: true };
+  } catch (err) {
+    console.error('changeStaffPassword failed:', err);
+    return { ok: false, error: "Couldn't change your password right now. Try again." };
+  }
 }
