@@ -7,6 +7,8 @@ import { useMob } from '@/lib/console/useMob';
 import { LANGUAGES } from '@/lib/console/prefs';
 import { auth } from '@/lib/firebase/client';
 import { changeStaffPassword } from '@/server/actions/console-auth';
+import { removeAllData, resetSeedData, saveTestConfig, seedData, type TestConfig } from '@/server/actions/console-admin';
+import { getConfig, setActiveConfig } from '@/lib/console/config';
 import { fdatetime } from '@/lib/console/derive';
 import { useConsole } from '../../_components/ConsoleProvider';
 import { Drawer, FieldLabel, LinkButton, PrimaryButton } from '../../_components/Drawer';
@@ -16,7 +18,7 @@ const SECTION: CSSProperties = { font: '600 11px/1 Outfit,sans-serif', letterSpa
 const GHOST: CSSProperties = { height: 44, padding: '0 16px', borderRadius: 999, background: 'linear-gradient(180deg,var(--cp-surface),var(--cp-surface-2))', border: '1px solid var(--cp-line)', boxShadow: '0 2px 0 var(--cp-edge)', color: 'var(--cp-ink)', font: '600 13px/1 Outfit,sans-serif', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' };
 
 const NOTIFS: [string, string, string][] = [
-  ['threshold', 'New case crosses threshold', 'Instant alert when community support hits 80%'],
+  ['threshold', 'New case crosses threshold', 'Instant alert when community support crosses the case threshold'],
   ['sla', 'SLA about to breach', '24 hours before the deadline'],
   ['reopen', 'Case reopened by citizens', 'When 3 citizens say not fixed'],
   ['dispute', 'Citizen disputes a fix', 'Every “not fixed” response'],
@@ -97,6 +99,111 @@ function PasswordDrawer({ open, onClose, onDone }: { open: boolean; onClose: () 
   );
 }
 
+type DataAction = 'seed' | 'reset' | 'wipe';
+const DATA_ACTIONS: Record<DataAction, { label: string; icon: string; title: string; body: string; word?: string; run: (t: string) => Promise<Record<string, number>> }> = {
+  seed: { label: 'Seed data', icon: 'ph-plant', title: 'Seed demo data', body: 'Adds the demo scenarios, Chennai case history, Madurai and Coimbatore reports, and the test citizens. Seeded records with the same ID are overwritten; nothing else is touched.', run: seedData },
+  reset: { label: 'Reset seed data', icon: 'ph-arrow-counter-clockwise', title: 'Reset seed data', body: 'Deletes every seeded record, the older sample cases, everything the test citizens reported, and the test citizens themselves, then seeds a fresh copy. Reports from real citizens stay. Use it between demo takes.', run: resetSeedData },
+  wipe: { label: 'Remove all data', icon: 'ph-trash', title: 'Remove all data', body: 'Deletes every report and case (real ones too), every citizen profile and the ID counters. Staff accounts and these settings are kept. This cannot be undone.', word: 'DELETE', run: removeAllData },
+};
+
+function ConfirmDataDrawer({ action, onClose, onDone }: { action: DataAction | null; onClose: () => void; onDone: (msg: string) => void }) {
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const a = action ? DATA_ACTIONS[action] : null;
+  const close = () => { setTyped(''); setErr(''); onClose(); };
+  const ok = !!a && (!a.word || typed.trim() === a.word);
+  async function go() {
+    if (!a || !ok || busy) return;
+    setBusy(true); setErr('');
+    try {
+      const t = await auth.currentUser?.getIdToken();
+      if (!t) throw new Error('Session expired. Sign in again.');
+      const r = await a.run(t);
+      close();
+      onDone(`${a.label} done · ${Object.entries(r).map(([k, v]) => `${v} ${k}`).join(', ')}`);
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Something went wrong.'); }
+    setBusy(false);
+  }
+  return (
+    <Drawer dark open={!!a} onClose={close} eyebrow="Test mode" title={a?.title ?? ''}
+      footer={<><LinkButton onClick={close}>Cancel</LinkButton><div style={{ flex: 1 }} /><PrimaryButton onClick={go} disabled={!ok || busy}>{busy ? 'Working…' : a?.label}</PrimaryButton></>}>
+      <span style={{ font: '500 13.5px/1.5 Outfit,sans-serif', color: 'var(--cp-ink-2)' }}>{a?.body}</span>
+      {a?.word && (
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <FieldLabel>Type {a.word} to confirm</FieldLabel>
+          <input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" style={{ height: 50, padding: '0 16px', borderRadius: 14, border: '1.5px solid var(--cp-line)', background: 'var(--cp-bg)', color: 'var(--cp-ink)', font: '600 15px/1 Outfit,sans-serif', outline: 'none' }} />
+        </label>
+      )}
+      {err && <span style={{ display: 'flex', alignItems: 'center', gap: 6, font: '600 12.5px/1.3 Outfit,sans-serif', color: 'var(--cp-pulse-deep)' }}><i className="ph-bold ph-warning-circle" />{err}</span>}
+    </Drawer>
+  );
+}
+
+const TH_FIELDS: [keyof Omit<TestConfig, 'testMode'>, string, string][] = [
+  ['caseSupporters', 'Supporters to open a case', 'Includes the reporter'],
+  ['caseConfidence', 'Or confidence to open a case (%)', 'Whichever comes first'],
+  ['confPerSupport', 'Confidence added per support (%)', 'A vote or a joined report'],
+  ['fixConfirmsNeeded', 'Confirmations to close a fixed case', 'Applies to cases marked fixed from now on'],
+];
+
+// Admin only: thresholds apply to everyone at once; seed/reset/wipe work only while test mode is on.
+function TestModeCard({ toast }: { toast: (m: string) => void }) {
+  const pick = (): TestConfig => { const c = getConfig(); return { caseSupporters: c.caseSupporters, caseConfidence: c.caseConfidence, confPerSupport: c.confPerSupport, fixConfirmsNeeded: c.fixConfirmsNeeded, testMode: c.testMode }; };
+  const [saved, setSaved] = useState<TestConfig>(pick);
+  const [draft, setDraft] = useState<TestConfig>(pick);
+  const [busy, setBusy] = useState(false);
+  const [action, setAction] = useState<DataAction | null>(null);
+  const dirty = TH_FIELDS.some(([k]) => Number(draft[k]) !== saved[k]);
+  async function save(next: TestConfig, msg: string) {
+    setBusy(true);
+    try {
+      const t = await auth.currentUser?.getIdToken();
+      if (!t) throw new Error('Session expired. Sign in again.');
+      const cfg = await saveTestConfig(t, next);
+      setActiveConfig(cfg);
+      const s = { caseSupporters: cfg.caseSupporters, caseConfidence: cfg.caseConfidence, confPerSupport: cfg.confPerSupport, fixConfirmsNeeded: cfg.fixConfirmsNeeded, testMode: cfg.testMode };
+      setSaved(s); setDraft(s); toast(msg);
+    } catch (e) { toast(e instanceof Error ? e.message : 'Could not save'); }
+    setBusy(false);
+  }
+  const numInput = { width: 84, height: 40, padding: '0 12px', borderRadius: 12, border: '1.5px solid var(--cp-line)', background: 'var(--cp-bg)', color: 'var(--cp-ink)', font: '600 14px/1 Outfit,sans-serif', outline: 'none', textAlign: 'right' } as const;
+  return (
+    <div style={CARD}>
+      <CardTitle icon="ph-flask">Test mode &amp; thresholds</CardTitle>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderTop: '1px solid var(--cp-line)' }}>
+        <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+          <span style={{ font: '600 13.5px/1.2 Outfit,sans-serif' }}>Test mode</span>
+          <span style={{ font: '500 12px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>Lists the test accounts on both sign-in pages and unlocks the data tools below.</span>
+        </span>
+        <Switch on={saved.testMode} label="Test mode" onClick={() => !busy && save({ ...saved, testMode: !saved.testMode }, saved.testMode ? 'Test mode off' : 'Test mode on · test accounts listed on sign-in')} />
+      </div>
+      {TH_FIELDS.map(([k, l, sub]) => (
+        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderTop: '1px solid var(--cp-line)' }}>
+          <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+            <span style={{ font: '600 13.5px/1.2 Outfit,sans-serif' }}>{l}</span>
+            <span style={{ font: '500 12px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-3)' }}>{sub}</span>
+          </span>
+          <input type="number" min={1} inputMode="numeric" aria-label={l} value={draft[k]} onChange={(e) => setDraft({ ...draft, [k]: e.target.value === '' ? '' : Number(e.target.value) })} style={numInput} />
+        </div>
+      ))}
+      {dirty && (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '4px 0 12px' }}>
+          <button onClick={() => setDraft(saved)} style={{ ...GHOST, height: 38 }}>Cancel</button>
+          <button onClick={() => save(draft, 'Thresholds saved · they apply right away')} disabled={busy} style={{ ...GHOST, height: 38, background: 'var(--cp-ink)', color: 'var(--cp-bg)' }}>Save thresholds</button>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '14px 0 10px', borderTop: '1px solid var(--cp-line)', opacity: saved.testMode ? 1 : 0.5 }}>
+        {(['seed', 'reset'] as const).map((k) => <button key={k} disabled={!saved.testMode} onClick={() => setAction(k)} style={{ ...GHOST, cursor: saved.testMode ? 'pointer' : 'not-allowed' }}><i className={`ph-bold ${DATA_ACTIONS[k].icon}`} />{DATA_ACTIONS[k].label}</button>)}
+        <div style={{ flex: 1 }} />
+        <button disabled={!saved.testMode} onClick={() => setAction('wipe')} style={{ height: 44, padding: '0 18px', borderRadius: 999, border: '1.5px solid var(--cp-pulse)', background: 'var(--cp-surface)', color: 'var(--cp-pulse-deep)', font: '600 13px/1 Outfit,sans-serif', cursor: saved.testMode ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}><i className="ph-bold ph-trash" />Remove all data</button>
+      </div>
+      {!saved.testMode && <span style={{ font: '500 12px/1.3 Outfit,sans-serif', color: 'var(--cp-ink-3)', paddingBottom: 10 }}>Turn on test mode to use the data tools.</span>}
+      <ConfirmDataDrawer action={action} onClose={() => setAction(null)} onDone={toast} />
+    </div>
+  );
+}
+
 export default function Settings() {
   const mob = useMob();
   const { staff, allIssues, signOut, toast, showDemo, setShowDemo, demoCount, prefs, updatePrefs: update } = useConsole();
@@ -144,6 +251,8 @@ export default function Settings() {
         </span>
         <span style={{ flex: 'none', height: 26, padding: '0 11px', borderRadius: 999, background: staff.role === 'admin' ? 'var(--cp-marigold-soft)' : 'var(--cp-peacock-soft)', color: 'var(--cp-ink)', font: '600 11.5px/26px Outfit,sans-serif' }}>{staff.role === 'admin' ? 'Admin' : 'Staff'}</span>
       </div>
+
+      {staff.role === 'admin' && <TestModeCard toast={toast} />}
 
       <span style={{ ...SECTION, margin: '4px 0 -8px' }}>Personal</span>
 

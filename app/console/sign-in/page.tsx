@@ -7,18 +7,16 @@ import { currentOrg } from '@/lib/console/org';
 import { checkStaffCredentials, signInStaff } from '@/server/actions/console-auth';
 import { useConsole } from '../_components/ConsoleProvider';
 import { FieldLabel, PrimaryButton } from '../_components/Drawer';
+import { TEST_STAFF, TEST_STAFF_PASSWORD } from '@/lib/seed/accounts';
+import { getPublicConfig } from '@/server/actions/public-config';
 
 const INPUT = { height: 54, padding: '0 18px', borderRadius: 16, border: '1.5px solid var(--cp-line)', background: 'var(--cp-surface)', color: 'var(--cp-ink)', font: '600 15px/1 Outfit,sans-serif', outline: 'none' } as const;
 const H1 = { font: "400 34px/1.05 'DM Serif Display',serif", letterSpacing: '-.03em' } as const;
 const SUB = { font: '400 14px/1.45 Outfit,sans-serif', color: 'var(--cp-ink-2)' } as const;
 
-// Seeded by scripts/seed-console.ts; listed here so testers can pick an account instead of typing it.
-const TEST_ACCOUNTS = [
-  { id: 'GCC-1001', name: 'Divya Raghavan', role: 'Admin', scope: 'All departments' },
-  { id: 'GCC-2041', name: 'Priya Natarajan', role: 'Staff', scope: 'Roads' },
-  { id: 'GCC-2042', name: 'Farida Begum', role: 'Staff', scope: 'Water & Drainage, Sanitation' },
-];
-const TEST_PASSWORD = 'koodal-demo';
+// Seeded by scripts/seed-console.ts; listed while test mode is on so testers can pick an account instead of typing it.
+const TEST_ACCOUNTS = TEST_STAFF.map((s) => ({ id: s.id, name: s.name, role: s.role === 'admin' ? 'Admin' : 'Staff', scope: s.note }));
+const TEST_PASSWORD = TEST_STAFF_PASSWORD;
 const TEST_CODE = '123456';
 
 function useDesk() {
@@ -43,6 +41,8 @@ export default function SignIn() {
   const [otp, setOtp] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [testMode, setTestMode] = useState(false);
+  useEffect(() => { getPublicConfig().then((c) => setTestMode(c.testMode)).catch(() => {}); }, []);
 
   useEffect(() => { if (ready && staff) router.replace('/console'); }, [ready, staff, router]);
 
@@ -139,7 +139,7 @@ export default function SignIn() {
         <span style={{ ...H1, fontSize: mob ? 30 : desk ? 42 : 34 }}>Sign in to Koodal Console</span>
         <span style={SUB}>Use your employee ID and password. We&apos;ll send a one-time code to confirm it&apos;s you.</span>
       </div>
-      {desk && Accounts}
+      {desk && testMode && Accounts}
       <div style={{ display: 'grid', gridTemplateColumns: desk ? 'repeat(2,minmax(0,1fr))' : 'minmax(0,1fr)', gap: 16 }}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <FieldLabel>Employee ID</FieldLabel>
@@ -152,7 +152,7 @@ export default function SignIn() {
       </div>
       {ErrLine}
       <PrimaryButton onClick={submitId} disabled={busy} style={wide}>Continue<i className="ph-bold ph-arrow-right" /></PrimaryButton>
-      {!desk && Accounts}
+      {!desk && testMode && Accounts}
     </>
   ) : (
     <>

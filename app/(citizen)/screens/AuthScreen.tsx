@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/app-context';
+import { TEST_CITIZENS } from '@/lib/seed/accounts';
 import { signInWithPhone, verifyAadhaar } from '@/server/actions/auth';
 
 interface Props {
@@ -29,7 +30,7 @@ const INTRO_SLIDES = [
     c: 'var(--cp-leaf)',
     k: 'Government',
     t: 'Government acts. You confirm.',
-    s: 'At 80% community confidence it becomes an official case you can track until it is fixed.',
+    s: 'Once enough neighbours back it, it becomes an official case you can track until it is fixed.',
   },
 ];
 
@@ -37,15 +38,8 @@ const AREAS = ['Velachery, Chennai', 'Adyar, Chennai', 'Madipakkam, Chennai', 'A
 const DEMO_PHONE = '8787878787';
 const DEMO_OTP = ['4', '8', '2', '1', '3', '7'];
 const DEMO_AADHAR = '8787 8787 8787';
-// Tap-to-fill demo citizens. 8787878787 is the seeded, already-verified account; the others sign up as
-// new citizens (Aadhaar + profile once), so a report can be supported by 5 different people.
-const DEMO_CITIZENS = [
-  { phone: DEMO_PHONE, name: 'Divya Raghavan', note: 'Verified · goes straight in' },
-  { phone: '9000000001', name: 'Karthik Subramani', note: 'New citizen · supporter 1' },
-  { phone: '9000000002', name: 'Meena Iyer', note: 'New citizen · supporter 2' },
-  { phone: '9000000003', name: 'Arjun Prakash', note: 'New citizen · supporter 3' },
-  { phone: '9000000004', name: 'Lakshmi Narayanan', note: 'New citizen · supporter 4' },
-];
+// Tap-to-fill test citizens (seeded by lib/seed), listed only while the Console's test mode is on.
+const DEMO_CITIZENS = TEST_CITIZENS;
 
 type Step = 'intro' | 'phone' | 'otp' | 'aad' | 'profile' | 'perm';
 
@@ -53,7 +47,7 @@ const PROG_STEPS: Step[] = ['phone', 'otp', 'aad', 'profile', 'perm'];
 
 export function AuthScreen({ mob = true }: Props) {
   const router = useRouter();
-  const { signInWithToken, setMe } = useApp();
+  const { signInWithToken, setMe, publicConfig } = useApp();
 
   const [introIdx, setIntroIdx] = useState(0);
   const [step, setStep] = useState<Step>('intro');
@@ -101,7 +95,7 @@ export function AuthScreen({ mob = true }: Props) {
 
   function pickDemoCitizen(c: (typeof DEMO_CITIZENS)[number]) {
     setPhone(c.phone);
-    if (!name.trim()) setName(c.name);
+    if (!name.trim() && c.seeded) setName(c.name);
   }
 
   function fillDemoAadhar() {
@@ -305,9 +299,10 @@ export function AuthScreen({ mob = true }: Props) {
               />
               {auPhOk && <i className="ph-fill ph-check-circle" style={{ color: 'var(--cp-leaf)', fontSize: 22, animation: 'cp-pop .3s both' }} />}
             </div>
+            {publicConfig.testMode && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, font: '600 11px/1 Outfit,sans-serif', letterSpacing: '.12em', color: 'var(--cp-ink-3)' }}>
-                DEMO NUMBERS
+                TEST ACCOUNTS
                 <span style={{ height: 20, padding: '0 8px', borderRadius: 999, background: 'var(--cp-marigold)', color: '#0f0f0f', font: '700 10px/20px Outfit,sans-serif', letterSpacing: '.06em' }}>TAP TO FILL</span>
               </span>
               {DEMO_CITIZENS.map(c => {
@@ -324,6 +319,7 @@ export function AuthScreen({ mob = true }: Props) {
                 );
               })}
             </div>
+            )}
           </div>
         )}
 

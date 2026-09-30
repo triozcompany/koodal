@@ -10,6 +10,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { DEFAULT_CONFIG } from '../lib/console/config';
+import { TEST_STAFF, TEST_STAFF_PASSWORD } from '../lib/seed/accounts';
 
 const SERVICE_ACCOUNT_PATH = join(process.cwd(), 'secret', 'trioz-319df-firebase-adminsdk-fbsvc-9ed783fdc2.json');
 function loadServiceAccount() {
@@ -19,14 +20,10 @@ function loadServiceAccount() {
 
 const resetPasswords = process.argv.includes('--reset-passwords');
 const overwriteConfig = process.argv.includes('--overwrite-config');
-const PASSWORD = process.env.STAFF_SEED_PASSWORD ?? 'koodal-demo';
+const PASSWORD = process.env.STAFF_SEED_PASSWORD ?? TEST_STAFF_PASSWORD;
 
 // depts: [] = every department (admin). Names match the departments in orgs/gcc.
-const STAFF = [
-  { id: 'GCC-1001', name: 'Divya Raghavan', title: 'Commissioner’s Office', role: 'admin', depts: [] as string[], email: 'divya.raghavan@chennaicorporation.gov.in', phone: '+91 98401 23456', reportsTo: 'Commissioner, Greater Chennai Corp.' },
-  { id: 'GCC-2041', name: 'Priya Natarajan', title: 'Junior Engineer', role: 'staff', depts: ['Roads'], email: 'priya.natarajan@chennaicorporation.gov.in', phone: '+91 98402 11041', reportsTo: 'AE Farida Begum' },
-  { id: 'GCC-2042', name: 'Farida Begum', title: 'Assistant Engineer', role: 'staff', depts: ['Water & Drainage', 'Sanitation'], email: 'farida.begum@chennaicorporation.gov.in', phone: '+91 98402 11042', reportsTo: 'Executive Engineer, Zone 13' },
-];
+const STAFF = TEST_STAFF.map(({ note: _note, ...s }) => ({ ...s, depts: [...s.depts] }));
 
 async function main() {
   const sa = loadServiceAccount();
