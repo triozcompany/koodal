@@ -190,8 +190,8 @@ export function CasesScreen({ issues, supported, meInitials, meVerified, onOpen,
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 110px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 2 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 16px 110px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 2, flexShrink: 0 }}>
 
           {/* Tabs */}
           <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, background: 'var(--cp-surface-2)' }}>
@@ -268,7 +268,7 @@ export function CasesScreen({ issues, supported, meInitials, meVerified, onOpen,
         </div>
 
         {view === 'list' && sorted.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', borderRadius: 20, border: '1px solid var(--cp-line)', background: 'var(--cp-surface)', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', borderRadius: 20, border: '1px solid var(--cp-line)', background: 'var(--cp-surface)', overflow: 'hidden', flexShrink: 0 }}>
             {sorted.map(i => (
               <CaseRow key={i.id} issue={i} mob onOpen={onOpen} needsYou={i.stage === 'resolved' && !!supported[i.id]} onConfirmFix={onConfirmFix} />
             ))}
@@ -276,7 +276,7 @@ export function CasesScreen({ issues, supported, meInitials, meVerified, onOpen,
         )}
 
         {view === 'grid' && sorted.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 12, flexShrink: 0 }}>
             {sorted.map(i => (
               <CaseCard key={i.id} issue={i} onOpen={openCardById} needsYou={i.stage === 'resolved' && !!supported[i.id]} onConfirmFix={onConfirmFix} />
             ))}
