@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>Koodal console onboarding</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="assets/audio-data.js"></script>
+    <style>
+      @font-face { font-family: "Outfit"; src: url("assets/fonts/outfit-latin.woff2") format("woff2"); font-weight: 100 900; font-style: normal; }
+      @font-face { font-family: "DM Serif Display"; src: url("assets/fonts/dmserif-latin.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+      @font-face { font-family: "Noto Sans Tamil"; src: url("assets/fonts/noto-tamil.woff2") format("woff2"); font-weight: 500; font-style: normal; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #fbf9f5; }
+      body { font-family: "Outfit", sans-serif; color: #0f0f0f; }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: #fbf9f5; }
+      #bg { position: absolute; inset: 0; }
+      #glow { position: absolute; inset: -10%; background: radial-gradient(70% 55% at 50% 118%, #f08a4b 0%, #f6b489 34%, #fbe3d2 60%, rgba(251,249,245,0) 82%); }
+      .scene { position: absolute; inset: 0; }
+      .hi { color: #e8590c; }
+      .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 24px; }
+      .eyebrow { font: 700 28px/1 "Outfit"; letter-spacing: .16em; text-transform: uppercase; color: #c94a08; }
+      .big { font: 700 150px/1.04 "Outfit"; letter-spacing: -.035em; }
+
+      #cols { position: absolute; left: 110px; top: 0; width: 540px; height: 1080px; }
+      .cap { position: absolute; left: 0; top: 0; width: 540px; height: 1080px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+      .pill { align-self: flex-start; padding: 12px 22px; border-radius: 99px; background: #fff; box-shadow: 0 12px 26px -14px rgba(120,40,0,.45); font: 700 22px/1 "Outfit"; letter-spacing: .1em; color: #a83d05; }
+      .h2 { font: 600 70px/1.04 "Outfit"; letter-spacing: -.04em; text-wrap: balance; }
+      .sub { font: 400 31px/1.4 "Outfit"; color: #3d3d3d; }
+      #tracker { position: absolute; left: 110px; top: 936px; display: flex; gap: 10px; align-items: center; }
+      .td { width: 56px; height: 8px; border-radius: 5px; background: #e4d9ce; }
+      #demo { position: absolute; left: 110px; top: 1006px; font: 500 22px/1 "Outfit"; color: #5c5046; }
+
+      /* browser window: chrome here, real recordings in #vwrap above it */
+      #bf { position: absolute; left: 690px; top: 156px; width: 1140px; height: 768px; border-radius: 22px; background: #f1ede8; box-shadow: 0 50px 100px -40px rgba(120,40,0,.55), 0 0 0 1px rgba(0,0,0,.06); }
+      #bar { position: absolute; left: 0; top: 0; width: 1140px; height: 56px; display: flex; align-items: center; padding: 0 20px; }
+      .dots { display: flex; gap: 9px; }
+      .dots i { width: 14px; height: 14px; border-radius: 50%; display: block; }
+      #urlbox { position: absolute; left: 150px; right: 150px; top: 11px; height: 34px; border-radius: 17px; background: #fff; font: 500 17px/34px "Outfit"; color: #4a4a4a; text-align: center; overflow: hidden; }
+      #urlbox span { position: absolute; left: 0; right: 0; top: 0; opacity: 0; }
+      #vwrap { position: absolute; left: 690px; top: 212px; width: 1140px; height: 712px; border-radius: 0 0 22px 22px; overflow: hidden; opacity: 0; z-index: 5; background: #fff; }
+      #vwrap video { position: absolute; left: 0; top: 0; width: 1140px; height: 712px; object-fit: cover; display: block; }
+
+      #mark { width: 200px; height: 200px; border-radius: 46px; box-shadow: 0 30px 60px -24px rgba(120,40,0,.55); }
+      .name { font: 700 140px/1 "Outfit"; letter-spacing: -.05em; display: flex; gap: 32px; align-items: baseline; }
+      .name .ta { font: 500 120px/1 "Noto Sans Tamil"; color: #e8590c; letter-spacing: 0; }
+      .url { display: inline-block; background: #0f0f0f; color: #fff; font: 600 34px/1 "Outfit"; padding: 20px 34px; border-radius: 99px; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-em5t" id="root" data-composition-id="main" data-start="0" data-duration="54.2" data-width="1920" data-height="1080">
+      <div data-hf-id="hf-2xc0" id="bg"><div data-hf-id="hf-27c6" id="glow"></div></div>
+
+      <section data-hf-id="hf-kvx9" id="s0" class="scene clip" data-start="0" data-duration="3.0" data-track-index="1">
+        <div data-hf-id="hf-pg9n" class="center" id="s0w">
+          <div data-hf-id="hf-v369" class="eyebrow" id="t0">Organization onboarding</div>
+          <div data-hf-id="hf-7jzz" class="big" id="t1">Set up your</div>
+          <div data-hf-id="hf-3qsl" class="big hi" id="t2" style="margin-top:-6px">Koodal Console.</div>
+        </div>
+      </section>
+
+      <section data-hf-id="hf-jxvm" id="sM" class="scene clip" data-start="3.0" data-duration="48.2" data-track-index="1">
+        <div data-hf-id="hf-j78k" id="cols">
+          <div data-hf-id="hf-a8ga" class="cap" id="c1"><div data-hf-id="hf-qdgs" class="pill">STEP 1 OF 7</div><div data-hf-id="hf-64n1" class="h2">Create your <span data-hf-id="hf-ufhb" class="hi">account.</span></div><div data-hf-id="hf-bkop" class="sub">You’ll be the owner of the organization. One account works for every organization you join later.</div></div>
+          <div data-hf-id="hf-6ac9" class="cap" id="c2"><div data-hf-id="hf-dnjb" class="pill">STEP 2 OF 7</div><div data-hf-id="hf-m0m0" class="h2">Pick the <span data-hf-id="hf-76g6" class="hi">type.</span></div><div data-hf-id="hf-68xu" class="sub">We’ll start you with the right words, categories and teams. You can change all of them later.</div></div>
+          <div data-hf-id="hf-5iog" class="cap" id="c3"><div data-hf-id="hf-83iy" class="pill">STEP 3 OF 7</div><div data-hf-id="hf-8ttz" class="h2">Tell us <span data-hf-id="hf-cpaw" class="hi">about it.</span></div><div data-hf-id="hf-v1mc" class="sub">This is what your members will see when they join, including their own Koodal address.</div></div>
+          <div data-hf-id="hf-zcyn" class="cap" id="c4"><div data-hf-id="hf-1u2d" class="pill">STEP 4 OF 7</div><div data-hf-id="hf-d7d4" class="h2">Choose a <span data-hf-id="hf-vzuj" class="hi">plan.</span></div><div data-hf-id="hf-o5z8" class="sub">Every plan starts with a 14-day free trial. No card needed.</div></div>
+          <div data-hf-id="hf-veum" class="cap" id="c5"><div data-hf-id="hf-mb6t" class="pill">YOUR ORGANIZATION</div><div data-hf-id="hf-35c3" class="h2">It’s <span data-hf-id="hf-oyqv" class="hi">ready.</span></div><div data-hf-id="hf-sayq" class="sub">Your trial has started. Add your services, set up your areas, then invite residents and staff.</div></div>
+          <div data-hf-id="hf-rgql" class="cap" id="c6"><div data-hf-id="hf-tjc8" class="pill">STEP 5 OF 7</div><div data-hf-id="hf-r0ak" class="h2">Sign in to the <span data-hf-id="hf-lzl5" class="hi">Console.</span></div><div data-hf-id="hf-xj8u" class="sub">Use your employee ID and password. Test accounts fill the form while the demo runs.</div></div>
+          <div data-hf-id="hf-qp2s" class="cap" id="c7"><div data-hf-id="hf-k877" class="pill">STEP 6 OF 7</div><div data-hf-id="hf-kztr" class="h2">Enter the <span data-hf-id="hf-cqbx" class="hi">code.</span></div><div data-hf-id="hf-h03v" class="sub">We send a one-time code to confirm it’s you. In the demo, any six digits work.</div></div>
+          <div data-hf-id="hf-5m5v" class="cap" id="c8"><div data-hf-id="hf-4e9i" class="pill">STEP 7 OF 7</div><div data-hf-id="hf-7ayv" class="h2">Welcome to <span data-hf-id="hf-updj" class="hi">Home.</span></div><div data-hf-id="hf-5fz3" class="sub">What needs your decision, overdue work and hotspots. Staff see only their own departments; admins see everything.</div></div>
+        </div>
+        <div data-hf-id="hf-howb" id="tracker"><i data-hf-id="hf-1g8s" class="td"></i><i data-hf-id="hf-efas" class="td"></i><i data-hf-id="hf-d8dp" class="td"></i><i data-hf-id="hf-dmoq" class="td"></i><i data-hf-id="hf-fm7v" class="td"></i><i data-hf-id="hf-g0iw" class="td"></i><i data-hf-id="hf-etlt" class="td"></i></div>
+        <div data-hf-id="hf-qzgs" id="demo">Demo data · fictional organization · test account</div>
+        <div data-hf-id="hf-3ozt" id="bf">
+          <div data-hf-id="hf-2to0" id="bar">
+            <div data-hf-id="hf-zx1w" class="dots"><i data-hf-id="hf-soml" style="background:#ff5f57"></i><i data-hf-id="hf-l5hl" style="background:#febc2e"></i><i data-hf-id="hf-om0b" style="background:#28c840"></i></div>
+            <div data-hf-id="hf-60j7" id="urlbox"><span data-hf-id="hf-xhbo" id="u1">ungakoodal.vercel.app/console/get-started</span><span data-hf-id="hf-235m" id="u2">ungakoodal.vercel.app/console/sign-in</span><span data-hf-id="hf-r49l" id="u3">ungakoodal.vercel.app/console</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live recordings of the real Console screens (desktop 1280x800) -->
+      <div data-hf-id="hf-dx5d" id="vwrap">
+        <video data-hf-id="hf-s7ob" id="vw" src="assets/wizard-live.mp4" muted playsinline data-start="3.0" data-duration="29.4" data-track-index="2"></video>
+        <video data-hf-id="hf-9lzl" id="vc" src="assets/console-live.mp4" muted playsinline data-start="32.4" data-duration="18.8" data-track-index="2"></video>
+      </div>
+
+      <section data-hf-id="hf-66sg" id="sE" class="scene clip" data-start="51.2" data-duration="3.0" data-track-index="1">
+        <div data-hf-id="hf-szkc" class="center" id="sEw">
+          <img data-hf-id="hf-en6y" id="mark" src="assets/img/koodal-mark.png" alt="Koodal">
+          <div data-hf-id="hf-ike8" class="name" id="nm"><span data-hf-id="hf-2nkd">Koodal</span><span data-hf-id="hf-rna9" class="ta">கூடல்</span></div>
+          <div data-hf-id="hf-gdyg" class="sub" id="tg" style="font-size:50px;color:#2b2b2b;max-width:1500px">Every case here started with <span data-hf-id="hf-z4m0" class="hi">your community.</span></div>
+          <div data-hf-id="hf-lyis" id="ur"><span data-hf-id="hf-8z4d" class="url">ungakoodal.vercel.app</span></div>
+        </div>
+      </section>
+
+      <audio data-hf-id="hf-ogki" id="music" src="assets/music/happy-beats-business-moves-vol-11-by-ende-dot-app.mp3" data-start="0" data-duration="54.2" data-track-index="10" data-volume="0.35" data-automation="{&quot;version&quot;:1,&quot;lanes&quot;:[{&quot;target&quot;:&quot;volume&quot;,&quot;points&quot;:[{&quot;t&quot;:0,&quot;v&quot;:0},{&quot;t&quot;:1.2,&quot;v&quot;:1},{&quot;t&quot;:52.4,&quot;v&quot;:1},{&quot;t&quot;:54.2,&quot;v&quot;:0}]}]}"></audio>
+      <audio data-hf-id="hf-1bv9" id="x01" src="assets/sfx/impactSoft_medium_001.ogg" data-start="1.0" data-duration="0.3" data-track-index="11" data-volume="0.6"></audio>
+      <audio data-hf-id="hf-p73l" id="y01" src="assets/sfx/rollover2.ogg" data-start="3.37" data-duration="0.3" data-track-index="12" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-cvkd" id="y02" src="assets/sfx/rollover2.ogg" data-start="11.76" data-duration="0.3" data-track-index="13" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-op1q" id="y03" src="assets/sfx/rollover2.ogg" data-start="15.39" data-duration="0.3" data-track-index="14" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-khsq" id="y04" src="assets/sfx/rollover2.ogg" data-start="22.95" data-duration="0.3" data-track-index="15" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-1mmj" id="y05" src="assets/sfx/click_003.ogg" data-start="25.66" data-duration="0.2" data-track-index="16" data-volume="0.9"></audio>
+      <audio data-hf-id="hf-vz0d" id="z01" src="assets/sfx/bong_001.ogg" data-start="28.44" data-duration="0.4" data-track-index="17" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-swrp" id="y06" src="assets/sfx/rollover2.ogg" data-start="32.94" data-duration="0.3" data-track-index="18" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-brm9" id="y07" src="assets/sfx/rollover2.ogg" data-start="37.55" data-duration="0.3" data-track-index="19" data-volume="0.5"></audio>
+      <audio data-hf-id="hf-29ev" id="z02" src="assets/sfx/bong_001.ogg" data-start="43.4" data-duration="0.4" data-track-index="20" data-volume="0.8"></audio>
+      <audio data-hf-id="hf-06r8" id="z03" src="assets/sfx/impactSoft_heavy_003.ogg" data-start="51.4" data-duration="0.6" data-track-index="21" data-volume="0.8"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const E = "power3.out";
+      const caption = (id, a, b) => { tl.fromTo(id, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, a); tl.to(id, { opacity: 0, y: -24, duration: 0.3, ease: "power2.in" }, b); };
+      const step = (i, t) => tl.to(`.td:nth-child(${i})`, { backgroundColor: "#e8590c", duration: 0.3 }, t);
+      const url = (id, a, b) => { tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: 0.2 }, a); if (b) tl.to(id, { opacity: 0, duration: 0.2 }, b); };
+
+      // Title 0-3.0
+      tl.fromTo("#t0", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: E }, 0);
+      tl.fromTo("#t1", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 0.25);
+      tl.fromTo("#t2", { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 1.0);
+      tl.to("#s0w", { opacity: 0, x: -50, duration: 0.25, ease: "power2.in" }, 2.72);
+
+      // Browser window enters, then the real recordings play inside it
+      tl.fromTo("#bf", { opacity: 0, x: 120 }, { opacity: 1, x: 0, duration: 0.6, ease: E }, 3.0);
+      tl.fromTo("#vwrap", { opacity: 0, x: 120 }, { opacity: 1, x: 0, duration: 0.6, ease: E }, 3.0);
+      tl.fromTo("#tracker", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 3.2);
+      tl.fromTo("#demo", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 3.4);
+      url("#u1", 3.0, 32.4); url("#u2", 32.4, 42.0); url("#u3", 42.0, 51.0);
+
+      // captions follow the recorded steps (times = recording marks + clip offset)
+      caption("#c1", 3.2, 11.5);   step(1, 3.2);
+      caption("#c2", 11.8, 15.2);  step(2, 11.8);
+      caption("#c3", 15.5, 22.8);  step(3, 15.5);
+      caption("#c4", 23.0, 25.5);  step(4, 23.0);
+      caption("#c5", 25.7, 32.0);
+      caption("#c6", 32.6, 37.3);  step(5, 32.6);
+      caption("#c7", 37.6, 43.2);  step(6, 37.6);
+      caption("#c8", 43.5, 50.7);  step(7, 43.5);
+
+      // exit the window, then outro
+      tl.to("#bf", { opacity: 0, x: -40, duration: 0.3, ease: "power2.in" }, 50.9);
+      tl.to("#vwrap", { opacity: 0, x: -40, duration: 0.3, ease: "power2.in" }, 50.9);
+      tl.to("#tracker", { opacity: 0, duration: 0.3 }, 50.9);
+      tl.to("#demo", { opacity: 0, duration: 0.3 }, 50.9);
+
+      tl.fromTo("#mark", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.8)" }, 51.4);
+      tl.fromTo("#nm", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.5, ease: E }, 51.6);
+      tl.fromTo("#tg", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 52.1);
+      tl.fromTo("#ur", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.45, ease: E }, 52.6);
+
+      // subtle audio-reactive backdrop glow (no text touched)
+      for (let f = 0; f < AUDIO_DATA.totalFrames; f++) {
+        tl.call(((fr) => () => {
+          const b = fr.bands[0] || 0, g = document.getElementById("glow");
+          g.style.opacity = (0.82 + b * 0.18).toFixed(3);
+          g.style.transform = "scale(" + (1 + b * 0.04).toFixed(4) + ")";
+        })(AUDIO_DATA.frames[f]), [], f / AUDIO_DATA.fps);
+      }
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+# Regenerable HyperFrames outputs and caches
+composition/renders/
+composition/.thumbnails/
+composition/.waveform-cache/
+composition/snapshots/
+composition/.hyperframes/
