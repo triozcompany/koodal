@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useApp } from '@/lib/app-context';
 import { useFilters } from '@/lib/hooks/useFilters';
 import { TAGS, ICON_TO_CAT } from '@/lib/domain/constants';
@@ -21,7 +22,6 @@ import { FilterPanel } from './FilterPanel';
 import { LocationDrawer } from './LocationDrawer';
 import { BottomNav } from './BottomNav';
 import { DesktopRail } from './DesktopRail';
-import { ReportScreen } from '../screens/ReportScreen';
 import { AiScreen } from '../screens/AiScreen';
 import { SimilarScreen } from '../screens/SimilarScreen';
 import { ThresholdModal } from './ThresholdModal';
@@ -30,6 +30,11 @@ import { CommentsSheet } from './CommentsSheet';
 import { VerifyScreen } from '../screens/VerifyScreen';
 import { CaseDetailScreen } from '../screens/CaseDetailScreen';
 import { ProfileDrawer } from './ProfileDrawer';
+
+// ReportScreen pulls in maplibre-gl (via LocationPicker). Loading it on demand keeps the map library out of the
+// bundle every citizen route shares; it is warmed up after first paint so opening Report stays instant.
+const loadReportScreen = () => import('../screens/ReportScreen').then((m) => m.ReportScreen);
+const ReportScreen = dynamic(loadReportScreen, { ssr: false });
 
 type ReportStep = 'report' | 'ai' | 'similar' | null;
 
@@ -261,6 +266,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Route guard: anyone not fully onboarded (signed in + Aadhaar-verified +
   // named) belongs at /onboard-member, whatever URL they landed on.
   // Waits for meReady so a reload of a deep link is not bounced before the profile arrives.
+  useEffect(() => {
+    const t = setTimeout(() => { void loadReportScreen(); }, 3000);
+    return () => clearTimeout(t);
+  }, []);
+
   useEffect(() => {
     if (authReady && meReady && !loading && !authed && pathname !== ONBOARD_ROUTE) {
       router.replace(ONBOARD_ROUTE);

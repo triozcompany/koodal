@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useMemo } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { Issue } from '@/lib/domain/types';
 import { DEFAULT_FILTER, applyFilter, countActiveFilters, type FilterState } from '@/lib/domain/filters';
 
@@ -26,7 +26,6 @@ function serializeFilters(f: FilterState): string {
 
 /** Filter state lives in the URL (shareable, survives back/forward) instead of component state. */
 export function useFilters(issues: Issue[]) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -34,8 +33,9 @@ export function useFilters(issues: Issue[]) {
 
   const setF = useCallback((next: FilterState) => {
     const qs = serializeFilters(next);
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [router, pathname]);
+    // Native history API: Next syncs useSearchParams with it, and unlike router.replace it makes no server round trip.
+    window.history.replaceState(null, '', qs ? `${pathname}?${qs}` : pathname);
+  }, [pathname]);
 
   const filtered = useMemo(() => applyFilter(issues, f), [issues, f]);
   const fCount = countActiveFilters(f);

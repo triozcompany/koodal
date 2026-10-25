@@ -55,7 +55,8 @@ function CasesInner() {
       const val = Array.isArray(v) ? v.join('|') : v;
       if (val) n.set(k, val); else n.delete(k);
     });
-    router.replace(`${path}${n.toString() ? `?${n}` : ''}`, { scroll: false });
+    // Native history API: stays in sync with useSearchParams without a server round trip per chip or keystroke.
+    window.history.replaceState(null, '', `${path}${n.toString() ? `?${n}` : ''}`);
   };
   useEffect(() => {
     if (q === urlQ) return;

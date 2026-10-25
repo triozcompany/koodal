@@ -15,6 +15,8 @@ import { getMe, saveStaffPrefs, type StaffProfile } from '@/server/actions/conso
 export type StaffSession = StaffProfile;
 const SESSION_KEY = 'cp-console-staff';
 const RAIL_KEY = 'cp-console-rail';
+// Last org config for this staff member, so the first paint does not wait on the getMe server action.
+const CONFIG_KEY = 'cp-console-config';
 
 interface Ctx {
   staff: StaffSession | null;
@@ -52,6 +54,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<StaffSession | null>(null);
   const [ready, setReady] = useState(false);
   const [configReady, setConfigReady] = useState(false);
+  const [configVer, setConfigVer] = useState(0);
   const [railCollapsed, setRail] = useState(false);
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [issuesReady, setIssuesReady] = useState(false);
@@ -71,7 +74,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(() => {
-    try { localStorage.removeItem(SESSION_KEY); } catch {}
+    try { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(CONFIG_KEY); } catch {}
     clearPrefs();
     clearTimeout(saveTimer.current);
     setStaff(null);
@@ -86,7 +89,13 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const s = localStorage.getItem(SESSION_KEY);
-      if (s) setStaff(JSON.parse(s));
+      if (s) {
+        const cached: StaffSession = JSON.parse(s);
+        setStaff(cached);
+        const c = localStorage.getItem(CONFIG_KEY);
+        const saved = c ? JSON.parse(c) : null;
+        if (saved && saved.id === cached.id) { setActiveConfig(saved.config); setConfigReady(true); setConfigVer((v) => v + 1); }
+      }
       setRail(localStorage.getItem(RAIL_KEY) === '1');
       setPrefs(readPrefs());
     } catch {}
@@ -104,24 +113,29 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     const off = onAuthStateChanged(auth, async (user) => {
       if (cancelled) return;
       if (!user) { signOut(); return; }
-      try {
-        const me = await getMe(await user.getIdToken());
-        if (cancelled) return;
-        setActiveConfig(me.config);
-        try { localStorage.setItem(SESSION_KEY, JSON.stringify(me.staff)); } catch {}
-        setStaff(me.staff);
-        setPrefs(me.prefs);
-        writePrefs(me.prefs);
-        setConfigReady(true);
-      } catch {
-        if (!cancelled) signOut();
-        return;
-      }
+      // The issues listener only needs the signed-in identity (the staff claim is on the token), so it starts
+      // now, in parallel with getMe, instead of waiting for the server action to return.
       unsub?.();
       unsub = onSnapshot(query(collection(db, 'issues'), orderBy('created', 'desc')), (snap) => {
         setAllIssues(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Issue)));
         setIssuesReady(true);
       }, () => setIssuesReady(true));
+      try {
+        const me = await getMe(await user.getIdToken());
+        if (cancelled) return;
+        setActiveConfig(me.config);
+        try {
+          localStorage.setItem(SESSION_KEY, JSON.stringify(me.staff));
+          localStorage.setItem(CONFIG_KEY, JSON.stringify({ id: me.staff.id, config: me.config }));
+        } catch {}
+        setStaff(me.staff);
+        setPrefs(me.prefs);
+        writePrefs(me.prefs);
+        setConfigReady(true);
+        setConfigVer((v) => v + 1);
+      } catch {
+        if (!cancelled) signOut();
+      }
     });
     return () => { cancelled = true; off(); unsub?.(); };
   }, [staffId, signOut]);
@@ -148,7 +162,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const scoped = useMemo(
     () => allIssues.filter((i) => inJurisdiction(i) && (!staff?.depts.length || staff.depts.includes(deptName(i)))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allIssues, staff, configReady],
+    [allIssues, staff, configReady, configVer],
   );
   const issues = useMemo(() => (showDemo ? scoped : scoped.filter((i) => !isDemo(i))), [scoped, showDemo]);
   const demoCount = useMemo(() => scoped.filter(isDemo).length, [scoped]);
@@ -165,7 +179,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ConsoleCtx.Provider value={{ staff, ready, configReady, issues, allIssues: scoped, prefs, updatePrefs, showDemo, setShowDemo, demoCount, issuesReady, signIn, signOut, toast, railCollapsed, toggleRail, mapState }}>
+    <ConsoleCtx.Provider value={{ staff, ready, configReady, issues, allIssues: scoped, prefs, updatePrefs, showDemo, setShowDemo, demoCount, issuesReady: issuesReady && configReady, signIn, signOut, toast, railCollapsed, toggleRail, mapState }}>
       {children}
       {msg && (
         <div style={{

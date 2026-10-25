@@ -16,11 +16,11 @@ const inStages = (...st: Issue['stage'][]): Allow => (i) => st.includes(i.stage)
  * `staff` claim (minted in signInStaff), and may only touch cases in their departments.
  * Returns the acting staff member so every event and stage change can be attributed. */
 async function staffCase(idToken: string, id: string, allow: Allow) {
-  const t = await adminAuth.verifyIdToken(idToken);
-  if (!t.staff) throw new Error('Not authorised');
-  await loadOrgConfig(); // department names (and so the scope check below) come from orgs/gcc
   const ref = adminDb.doc(`issues/${id}`);
-  const snap = await ref.get();
+  // Independent reads, so they run together. The org config supplies the department names for the scope
+  // check below; the claim check still runs before anything about the case is revealed.
+  const [t, , snap] = await Promise.all([adminAuth.verifyIdToken(idToken), loadOrgConfig(), ref.get()]);
+  if (!t.staff) throw new Error('Not authorised');
   if (!snap.exists) throw new Error('Case not found');
   const issue = { id, ...snap.data() } as Issue;
   const depts = (t.depts as string[] | undefined) ?? [];
